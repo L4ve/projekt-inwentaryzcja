@@ -25,6 +25,10 @@ app.get('/api/items', async (req, res) => {
 app.get('/api/items/:id', async (req, res) => {
   try {
     const [items] = await db.query('SELECT * FROM item WHERE id = ?', [req.params.id])
+    if (items.length === 0) {
+      return res.status(404).json({ error: 'Item not found' })
+    }
+
     res.json(items[0])
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -39,6 +43,66 @@ app.post('/api/items', async (req, res) => {
       [inventory_number, manufacturer, model]
     )
     res.json({ id: result.insertId })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/items/:id', async (req, res) => {
+  try {
+    const [existingItems] = await db.query('SELECT * FROM item WHERE id = ?', [req.params.id])
+
+    if (existingItems.length === 0) {
+      return res.status(404).json({ error: 'Item not found' })
+    }
+
+    const currentItem = existingItems[0]
+    const updatedItem = {
+      ...currentItem,
+      ...req.body,
+    }
+
+    await db.query(
+      `UPDATE item
+       SET inventory_number = ?,
+           manufacturer = ?,
+           model = ?,
+           purchase_date = ?,
+           purchase_price = ?,
+           location_id = ?,
+           status_id = ?,
+           assigned_to = ?
+       WHERE id = ?`,
+      [
+        updatedItem.inventory_number,
+        updatedItem.manufacturer,
+        updatedItem.model,
+        updatedItem.purchase_date,
+        updatedItem.purchase_price,
+        updatedItem.location_id,
+        updatedItem.status_id,
+        updatedItem.assigned_to,
+        req.params.id,
+      ]
+    )
+
+    res.json({ message: 'Item updated' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/items/:id', async (req, res) => {
+  try {
+    const [existingItems] = await db.query('SELECT id FROM item WHERE id = ?', [req.params.id])
+
+    if (existingItems.length === 0) {
+      return res.status(404).json({ error: 'Item not found' })
+    }
+
+    await db.query('DELETE FROM item WHERE id = ?', [req.params.id])
+
+    res.json({ message: 'Item deleted' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
