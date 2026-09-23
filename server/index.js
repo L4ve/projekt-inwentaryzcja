@@ -50,19 +50,8 @@ app.post('/api/items', async (req, res) => {
 
 app.put('/api/items/:id', async (req, res) => {
   try {
-    const [existingItems] = await db.query('SELECT * FROM item WHERE id = ?', [req.params.id])
-
-    if (existingItems.length === 0) {
-      return res.status(404).json({ error: 'Item not found' })
-    }
-
-    const currentItem = existingItems[0]
-    const updatedItem = {
-      ...currentItem,
-      ...req.body,
-    }
-
-    await db.query(
+    const { inventory_number, manufacturer, model, purchase_date, purchase_price, location_id, status_id, assigned_to } = req.body
+    const [result] = await db.query(
       `UPDATE item
        SET inventory_number = ?,
            manufacturer = ?,
@@ -74,17 +63,21 @@ app.put('/api/items/:id', async (req, res) => {
            assigned_to = ?
        WHERE id = ?`,
       [
-        updatedItem.inventory_number,
-        updatedItem.manufacturer,
-        updatedItem.model,
-        updatedItem.purchase_date,
-        updatedItem.purchase_price,
-        updatedItem.location_id,
-        updatedItem.status_id,
-        updatedItem.assigned_to,
+        inventory_number,
+        manufacturer,
+        model,
+        purchase_date,
+        purchase_price,
+        location_id,
+        status_id,
+        assigned_to,
         req.params.id,
       ]
     )
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Item not found' })
+    }
 
     res.json({ message: 'Item updated' })
   } catch (err) {
@@ -94,13 +87,11 @@ app.put('/api/items/:id', async (req, res) => {
 
 app.delete('/api/items/:id', async (req, res) => {
   try {
-    const [existingItems] = await db.query('SELECT id FROM item WHERE id = ?', [req.params.id])
+    const [result] = await db.query('DELETE FROM item WHERE id = ?', [req.params.id])
 
-    if (existingItems.length === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Item not found' })
     }
-
-    await db.query('DELETE FROM item WHERE id = ?', [req.params.id])
 
     res.json({ message: 'Item deleted' })
   } catch (err) {
