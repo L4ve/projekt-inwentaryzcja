@@ -8,6 +8,7 @@ Base URL:
 
 http://localhost:4000
 
+
 ==================================================
 
 1. TECHNOLOGIES
@@ -39,6 +40,7 @@ The server will start on:
 
 http://localhost:4000
 
+
 ==================================================
 
 3. AUTHENTICATION
@@ -59,9 +61,13 @@ Example item:
   "id": 1,
   "inventory_number": "INV-001",
   "manufacturer": "Dell",
-  "model": "Latitude 5520"
+  "model": "Latitude 5520",
+  "purchase_date": "2026-01-15",
+  "purchase_price": 3500.00,
+  "location_id": 1,
+  "status_id": 1,
+  "assigned_to": "Jan Kowalski"
 }
-
 
 1. id
 
@@ -79,28 +85,44 @@ Manufacturer of the item.
 
 Model of the item.
 
+5. purchase_date
+
+Date when the item was purchased.
+
+6. purchase_price
+
+Purchase price of the item.
+
+7. location_id
+
+Identifier of the location where the item is stored.
+
+8. status_id
+
+Identifier of the current status of the item.
+
+9. assigned_to
+
+Person assigned to the item.
+
 ==================================================
 
 5. API REFERENCE
-
 GET /api/items
 
 Returns all items stored in the inventory.
 
 REQUEST
-
 GET /api/items
 
 
 No parameters are required.
 
 EXAMPLE
-
 const response = await fetch('http://localhost:4000/api/items')
 const items = await response.json()
 
 console.log(items)
-
 
 RESPONSE
 
@@ -121,7 +143,6 @@ Status: 200 OK
   }
 ]
 
-
 ERROR
 
 Status: 500 Internal Server Error
@@ -135,19 +156,16 @@ GET /api/items/:id
 Returns one item using its ID.
 
 REQUEST
-
 GET /api/items/1
 
 
 The id in the URL specifies which item should be returned.
 
 EXAMPLE
-
 const response = await fetch('http://localhost:4000/api/items/1')
 const item = await response.json()
 
 console.log(item)
-
 
 RESPONSE
 
@@ -160,15 +178,15 @@ Status: 200 OK
   "model": "Latitude 5520"
 }
 
-
 ITEM NOT FOUND
 
 If the item does not exist, the current implementation returns:
 
-null
+Status: 404 Not Found
 
-
-The response status is still 200 OK.
+{
+  "error": "Item not found"
+}
 
 ERROR
 
@@ -183,7 +201,6 @@ POST /api/items
 Creates a new item in the inventory.
 
 REQUEST
-
 POST /api/items
 Content-Type: application/json
 
@@ -212,7 +229,6 @@ model
 Model of the item.
 
 EXAMPLE
-
 const response = await fetch('http://localhost:4000/api/items', {
   method: 'POST',
   headers: {
@@ -229,7 +245,6 @@ const result = await response.json()
 
 console.log(result)
 
-
 RESPONSE
 
 Status: 200 OK
@@ -240,6 +255,93 @@ The API returns the ID of the newly created item:
   "id": 3
 }
 
+ERROR
+
+Status: 500 Internal Server Error
+
+{
+  "error": "Database error message"
+}
+
+PUT /api/items/:id
+
+Updates an existing inventory item.
+
+The endpoint updates the following fields:
+
+inventory_number
+
+manufacturer
+
+model
+
+purchase_date
+
+purchase_price
+
+location_id
+
+status_id
+
+assigned_to
+
+REQUEST
+PUT /api/items/1
+Content-Type: application/json
+
+
+Request body:
+
+{
+  "inventory_number": "INV-001",
+  "manufacturer": "Dell",
+  "model": "Latitude 5520",
+  "purchase_date": "2026-01-15",
+  "purchase_price": 3500.00,
+  "location_id": 2,
+  "status_id": 1,
+  "assigned_to": "Jan Kowalski"
+}
+
+EXAMPLE
+const response = await fetch('http://localhost:4000/api/items/1', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    inventory_number: 'INV-001',
+    manufacturer: 'Dell',
+    model: 'Latitude 5520',
+    purchase_date: '2026-01-15',
+    purchase_price: 3500.00,
+    location_id: 2,
+    status_id: 1,
+    assigned_to: 'Jan Kowalski'
+  })
+})
+
+const result = await response.json()
+
+console.log(result)
+
+RESPONSE
+
+Status: 200 OK
+
+{
+  "message": "Item updated"
+}
+
+ITEM NOT FOUND
+
+If the item does not exist:
+
+Status: 404 Not Found
+
+{
+  "error": "Item not found"
+}
 
 ERROR
 
@@ -248,6 +350,52 @@ Status: 500 Internal Server Error
 {
   "error": "Database error message"
 }
+
+DELETE /api/items/:id
+
+Deletes an existing item from the inventory.
+
+REQUEST
+DELETE /api/items/1
+
+
+The id in the URL specifies which item should be deleted.
+
+EXAMPLE
+const response = await fetch('http://localhost:4000/api/items/1', {
+  method: 'DELETE'
+})
+
+const result = await response.json()
+
+console.log(result)
+
+RESPONSE
+
+Status: 200 OK
+
+{
+  "message": "Item deleted"
+}
+
+ITEM NOT FOUND
+
+If the item does not exist:
+
+Status: 404 Not Found
+
+{
+  "error": "Item not found"
+}
+
+ERROR
+
+Status: 500 Internal Server Error
+
+{
+  "error": "Database error message"
+}
+
 
 ==================================================
 
@@ -259,7 +407,6 @@ When a database error occurs, the server returns:
 
 500 Internal Server Error
 
-
 with the following JSON:
 
 {
@@ -267,15 +414,23 @@ with the following JSON:
 }
 
 
-The current implementation does not provide separate handling for invalid input or missing items.
+The API also returns 404 Not Found when an operation references an item that does not exist.
+
+For example:
+
+{
+  "error": "Item not found"
+}
+
+
+The current implementation does not provide separate validation for invalid input data.
 
 ==================================================
 
 7. RELEASE NOTES
+VERSION 0.0.2
 
-VERSION 0.0.1
-
-Initial version of the Inventory API.
+Updated version of the Inventory API.
 
 Added:
 
@@ -285,6 +440,10 @@ GET /api/items/:id
 
 POST /api/items
 
+PUT /api/items/:id
+
+DELETE /api/items/:id
+
 MySQL database connection
 
 JSON request and response handling
@@ -293,22 +452,23 @@ CORS support
 
 Basic database error handling
 
+404 Not Found handling for missing items
+
 Known limitations:
 
 No authentication
 
 No input validation
 
-No PUT or PATCH endpoint
+No PATCH endpoint
 
-No DELETE endpoint
+No separate validation error responses
 
-Missing items return null instead of 404 Not Found
+API exposes database error messages directly
 
 ==================================================
 
 8. AVAILABLE ENDPOINTS
-
 GET /api/items
 
 Returns all inventory items.
@@ -321,11 +481,58 @@ POST /api/items
 
 Creates a new inventory item.
 
+PUT /api/items/:id
+
+Updates an existing inventory item.
+
+DELETE /api/items/:id
+
+Deletes an existing inventory item.
+
 ==================================================
 
-9. TUTORIAL
+9. HTTP STATUS CODES
 
-This example shows how to add an item and then retrieve it.
+The API currently uses the following HTTP status codes:
+
+200 OK
+
+The request was successful.
+
+Used by:
+
+GET /api/items
+
+GET /api/items/:id
+
+POST /api/items
+
+PUT /api/items/:id
+
+DELETE /api/items/:id
+
+404 Not Found
+
+The requested item does not exist.
+
+{
+  "error": "Item not found"
+}
+
+500 Internal Server Error
+
+A database or server error occurred.
+
+{
+  "error": "Database error message"
+}
+
+
+==================================================
+
+10. TUTORIAL
+
+This example shows how to add an item, retrieve it, update it, and finally delete it.
 
 STEP 1 — START THE SERVER
 
@@ -337,7 +544,6 @@ node index.js
 The API will be available at:
 
 http://localhost:4000
-
 
 STEP 2 — GET THE CURRENT INVENTORY
 
@@ -378,7 +584,6 @@ The API returns the ID of the new item:
   "id": 100
 }
 
-
 STEP 4 — GET THE NEW ITEM
 
 Use the returned ID:
@@ -397,3 +602,84 @@ The API returns:
   "manufacturer": "Lenovo",
   "model": "ThinkPad T14"
 }
+
+STEP 5 — UPDATE THE ITEM
+
+Send a PUT request:
+
+const response = await fetch('http://localhost:4000/api/items/100', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    inventory_number: 'INV-100',
+    manufacturer: 'Lenovo',
+    model: 'ThinkPad T14',
+    purchase_date: '2026-09-28',
+    purchase_price: 4200.00,
+    location_id: 1,
+    status_id: 1,
+    assigned_to: 'Jan Kowalski'
+  })
+})
+
+const result = await response.json()
+
+console.log(result)
+
+
+The API returns:
+
+{
+  "message": "Item updated"
+}
+
+STEP 6 — DELETE THE ITEM
+
+Send a DELETE request:
+
+const response = await fetch('http://localhost:4000/api/items/100', {
+  method: 'DELETE'
+})
+
+const result = await response.json()
+
+console.log(result)
+
+
+The API returns:
+
+{
+  "message": "Item deleted"
+}
+
+
+After deletion, trying to retrieve the same item will return:
+
+Status: 404 Not Found
+
+{
+  "error": "Item not found"
+}
+
+
+==================================================
+
+11. ENDPOINT SUMMARY
+Method	Endpoint	Description
+GET	/api/items	Returns all items
+GET	/api/items/:id	Returns one item
+POST	/api/items	Creates an item
+PUT	/api/items/:id	Updates an item
+DELETE	/api/items/:id	Deletes an item
+
+==================================================
+
+12. SERVER
+
+The Express server listens on port 4000.
+
+app.listen(4000, () => {
+  console.log('ale mi dryga api dziala oh ahhhh oh ahhhh http://localhost:4000')
+})
