@@ -668,10 +668,15 @@ Status: 404 Not Found
 
 11. ENDPOINT SUMMARY
 Method	Endpoint	Description
+
 GET	/api/items	Returns all items
+
 GET	/api/items/:id	Returns one item
+
 POST	/api/items	Creates an item
+
 PUT	/api/items/:id	Updates an item
+
 DELETE	/api/items/:id	Deletes an item
 
 ==================================================
