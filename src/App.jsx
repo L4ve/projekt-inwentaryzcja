@@ -1,36 +1,31 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
 const equipment = [
   {
     inventory: "INV-2026-001",
-    product: <>Dell XPS 15<br />9520</>,
+    product: <>Dell XPS 15 9520</>,
     location: <>Biuro 102</>,
     assigned: "Moderator",
-    assignedIcon: "👤",
     status: "Aktywny",
     statusClass: "active-status",
   },
-
 ];
 
-function Sidebar() {
+function Sidebar({ setActivePage }) {
   return (
     <aside className="sidebar">
-      <div className="nav-item active">
-        <span>Ewidencja Sprzętu</span>
-      </div>
+      <button className="nav-item" type="button" onClick={() => setActivePage("equipment")}>
+        <span>• Ewidencja Sprzętu</span>
+      </button>
 
-      <div className="nav-item">
-       
-        <span>Logi Audytowe</span>
-      </div>
-      <div className="nav-item">
-        <span>Zarządzanie Dostępem</span>
-      </div>
+      <button className="nav-item" type="button" onClick={() => setActivePage("logs")}>
+        <span>• Logi</span>
+      </button>
+
+      <button className="nav-item" type="button" onClick={() => setActivePage("access")}>
+        <span>• Zarządzanie Dostępem</span>
+      </button>
     </aside>
   );
 }
@@ -50,43 +45,35 @@ function EquipmentTable() {
       <table>
         <thead>
           <tr>
-            <th>NR<br />INWENTARZOWY</th>
-            <th>PRODUCENT I<br />MODEL</th>
+            <th>NR INWENTARZOWY</th>
+            <th>PRODUCENT I MODEL</th>
             <th>LOKALIZACJA</th>
-            <th>PRZYPISANY<br />DO</th>
+            <th>PRZYPISANY DO</th>
             <th>STATUS</th>
             <th>AKCJE</th>
           </tr>
         </thead>
-
         <tbody>
           {equipment.map((item) => (
             <tr key={item.inventory}>
               <td className="inventory">{item.inventory}</td>
-
               <td className="product">{item.product}</td>
-
               <td>{item.location}</td>
-
               <td>
                 {item.assigned ? (
-                  <span className="assigned">
-                    <span className="assigned-icon">{item.assignedIcon}</span>
-                    {item.assigned}
-                  </span>
+                  <span className="assigned">{item.assigned}</span>
                 ) : (
                   <span className="dash">—</span>
                 )}
               </td>
-
               <td>
-                <StatusBadge
-                  status={item.status}
-                  statusClass={item.statusClass}
-                />
+                <StatusBadge status={item.status} statusClass={item.statusClass} />
               </td>
-
-              <td className="actions">⋮</td>
+              <td className="actions">
+                <button className="action-menu" type="button" aria-label={`Akcje dla ${item.inventory}`}>
+                  ⋮
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -96,47 +83,44 @@ function EquipmentTable() {
 }
 
 function App() {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("Wszystkie");
+  const [assigned, setAssigned] = useState("Wszyscy");
+
   return (
     <>
       <header className="topbar">
         <div className="logo">
-          📦 Ewidencja<span>Sprzętu</span>
+          📦 Ewidencja <span>Sprzętu</span>
         </div>
-
-        <div className="role">Rola: ADMIN</div>
       </header>
-
       <div className="layout">
-        <Sidebar />
-
+        <Sidebar/>
         <main className="main">
           <div className="heading-row">
-            <div>
-              <h1>Lista Sprzętu</h1>
-              <p className="subtitle">
-                Zarządzaj przedmiotami, statusami i przypisaniami w systemie.
-              </p>
+            <div className="filters">
+              <input type="text" placeholder="Szukaj po nr inwentarzowym, marce, modelu." value={search} onChange={(e) => setSearch(e.target.value)}/>
             </div>
 
-            <button className="add-button">
-              + Dodaj przedmiot
-            </button>
-          </div>
-
-          <div className="filters">
-            <div className="filter search">
-              Szukaj po nr inwentarzowym, marce, modelu.
+            <div className="status">
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="Wszystkie">Status: Wszystkie</option>
+                <option value="Aktywny">Status: Aktywny</option>
+                <option value="Nieaktywny">Status: Nieaktywny</option>
+                <option value="Wydany">Status: Wydany</option>
+                <option value="Uszkodzony">Status: Uszkodzony</option>
+              </select>
             </div>
 
-            <div className="filter middle">
-              Status: Wszystkie ▼
-            </div>
-
-            <div className="filter last">
-              Przypisany: Wszyscy ▼
+            <div className="assigned">
+              <select value={assigned} onChange={(e) => setAssigned(e.target.value)}>
+                <option value="Wszyscy">Przypisany: Wszyscy</option>
+                <option value="Moderator">Przypisany: Moderator</option>
+                <option value="Admin">Przypisany: Admin</option>
+                <option value="Nikt">Przypisany: Nikt</option>
+              </select>
             </div>
           </div>
-
           <EquipmentTable />
         </main>
       </div>
