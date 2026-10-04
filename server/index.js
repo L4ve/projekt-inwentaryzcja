@@ -27,13 +27,22 @@ const Item = sequelize.define(
 )
 
 const app = express()
+
 app.use(cors())
 app.use(express.json())
+
+app.get('/api/status', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'API działa',
+  })
+})
 
 app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.findAll()
-    res.json(items)
+
+    res.status(200).json(items)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -43,10 +52,12 @@ app.get('/api/items/:id', async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({ error: 'Item not found' })
+      return res.status(404).json({
+        error: 'Item not found',
+      })
     }
 
-    res.json(item)
+    res.status(200).json(item)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -55,21 +66,37 @@ app.get('/api/items/:id', async (req, res) => {
 app.post('/api/items', async (req, res) => {
   try {
     const { inventory_number, manufacturer, model } = req.body
+
     const item = await Item.create({ inventory_number, manufacturer, model })
-    res.json({ id: item.id })
+
+    res.status(200).json({
+      id: item.id,
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.put('/api/items/:id', async (req, res) => {
+app.patch('/api/items/:id', async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({ error: 'Item not found' })
+      return res.status(404).json({
+        error: 'Item not found',
+      })
     }
 
-    const { inventory_number, manufacturer, model, purchase_date, purchase_price, location_id, status_id, assigned_to } = req.body
+    const {
+      inventory_number,
+      manufacturer,
+      model,
+      purchase_date,
+      purchase_price,
+      location_id,
+      status_id,
+      assigned_to,
+    } = req.body
+
     await item.update({
       inventory_number,
       manufacturer,
@@ -81,7 +108,9 @@ app.put('/api/items/:id', async (req, res) => {
       assigned_to,
     })
 
-    res.json({ message: 'Item updated' })
+    res.status(200).json({
+      message: 'Item updated',
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -91,16 +120,23 @@ app.delete('/api/items/:id', async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({ error: 'Item not found' })
+      return res.status(404).json({
+        error: 'Item not found',
+      })
     }
 
     await item.destroy()
-    res.json({ message: 'Item deleted' })
+
+    res.status(200).json({
+      message: 'Item deleted',
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
 app.listen(4000, () => {
-  console.log('ale mi dryga api dziala oh ahhhh oh ahhhh http://localhost:4000')
+  console.log(
+    'ale mi dryga api dziala oh ahhhh oh ahhhh http://localhost:4000'
+  )
 })
