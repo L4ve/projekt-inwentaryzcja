@@ -140,3 +140,13 @@ app.listen(4000, () => {
     'ale mi dryga api dziala oh ahhhh oh ahhhh http://localhost:4000'
   )
 })
+
+function validateItem(data) {
+if (!data.inventory_number || !data.manufacturer || !data.model)
+  return 'Uzupełnij wymagane pola'
+
+if (data.purchase_price < 0)
+  return 'Cena nie może być ujemna'
+
+return null
+}
