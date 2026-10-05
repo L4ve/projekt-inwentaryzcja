@@ -65,14 +65,45 @@ app.get('/api/items/:id', async (req, res) => {
 
 app.post('/api/items', async (req, res) => {
   try {
-    const { inventory_number, manufacturer, model } = req.body
+    const {
+      inventory_number,
+      manufacturer = null,
+      model = null,
+      purchase_date = null,
+      purchase_price = null,
+      location_id = null,
+      status_id = 1,
+      assigned_to = null,
+    } = req.body
 
-    const item = await Item.create({ inventory_number, manufacturer, model })
-
-    res.status(200).json({
-      id: item.id,
+    const validationError = validateItem({
+      inventory_number,
+      purchase_price,
     })
+
+    if (validationError) {
+      return res.status(400).json({ error: validationError })
+    }
+
+    const item = await Item.create({
+      inventory_number,
+      manufacturer,
+      model,
+      purchase_date,
+      purchase_price,
+      location_id,
+      status_id,
+      assigned_to,
+    })
+
+    res.status(201).json(item)
   } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        error: 'Inventory number already exists',
+      })
+    }
+
     res.status(500).json({ error: err.message })
   }
 })
@@ -142,11 +173,14 @@ app.listen(4000, () => {
 })
 
 function validateItem(data) {
-if (!data.inventory_number || !data.manufacturer || !data.model)
-  return 'Uzupełnij wymagane pola'
+if (!data.inventory_number || typeof data.inventory_number !== 'string')
+  return 'Inventory number is required'
 
-if (data.purchase_price < 0)
-  return 'Cena nie może być ujemna'
+if (data.purchase_price !== null && data.purchase_price !== undefined) {
+  const purchasePrice = Number(data.purchase_price)
+  if (!Number.isFinite(purchasePrice) || purchasePrice < 0)
+    return 'Purchase price must be a non-negative number'
+}
 
 return null
 }
