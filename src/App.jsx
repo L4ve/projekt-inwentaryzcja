@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 
+// DO WYJEBANIA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! POZNIEJ!!!!!!!!!!!!!!!!! TO PRZYKLAD!!!!!!!!!!!!!!!!!!!!!!!!
 const equipment = [
   {
     inventory: "INV-2026-001",
