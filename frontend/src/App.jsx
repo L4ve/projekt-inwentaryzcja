@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import Sidebar from "./components/sidebar";
-import EquipmentTable from "./components/EquipmentTable";
-import { equipment } from "./data/equipment";
+import Login from "./components/Login";
+import Items from "./components/Items";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 function App() {
   const [search, setSearch] = useState("");
