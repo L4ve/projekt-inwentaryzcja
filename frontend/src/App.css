@@ -92,6 +92,7 @@ body {
   border-bottom: 2px solid var(--color-primary);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--topbar-horizontal-padding);
 }
 
@@ -320,98 +321,4 @@ tbody tr:last-child td {
   font-size: var(--action-menu-font-size);
   font-weight: bold;
   cursor: pointer;
-}
-
-.main > .items {
-  min-width: 0;
-  overflow-x: auto;
-}
-
-.main > .items table {
-  min-width: 760px;
-}
-
-.main > .items th:nth-child(1),
-.main > .items td:nth-child(1) {
-  width: 20%;
-}
-
-.main > .items th:nth-child(2),
-.main > .items td:nth-child(2) {
-  width: 19%;
-}
-
-.main > .items th:nth-child(3),
-.main > .items td:nth-child(3) {
-  width: 18%;
-}
-
-.main > .items th:nth-child(4),
-.main > .items td:nth-child(4) {
-  width: 22%;
-}
-
-.main > .items th:nth-child(5),
-.main > .items td:nth-child(5) {
-  width: 21%;
-}
-
-.items-message {
-  padding: 20px;
-  color: var(--color-text-muted);
-  font-size: var(--table-cell-font-size);
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--status-gap);
-  padding: 4px var(--status-horizontal-padding);
-  border-radius: 999px;
-  font-size: var(--filter-font-size);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.status-pill-dot {
-  width: var(--status-dot-size);
-  height: var(--status-dot-size);
-  border-radius: 50%;
-}
-
-.status-pill.active {
-  color: var(--color-status-active);
-  background: #dcfce7;
-}
-
-.status-pill.active .status-pill-dot {
-  background: #75b843;
-}
-
-.status-pill.repair {
-  color: var(--color-status-repair-text);
-  background: var(--color-status-repair-background);
-}
-
-.status-pill.repair .status-pill-dot {
-  background: var(--color-status-repair-dot);
-}
-
-.status-pill.damaged {
-  color: var(--color-status-damaged-text);
-  background: var(--color-status-damaged-background);
-}
-
-.status-pill.damaged .status-pill-dot {
-  background: var(--color-status-damaged-dot);
-}
-
-.status-pill.archive {
-  color: var(--color-status-archive-text);
-  background: var(--color-status-archive-background);
-}
-
-.status-pill.archive .status-pill-dot {
-  background: var(--color-status-archive-dot);
-  border: 1px solid var(--color-status-archive-dot-border);
 }

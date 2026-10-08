@@ -2,6 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import { Sequelize, DataTypes } from 'sequelize'
 import dotenv from 'dotenv'
+import bcrypt from 'bcryptjs'
+import helmet from 'helmet'
+import { createHash, randomBytes } from 'node:crypto'
 
 dotenv.config({ path: new URL('.env', import.meta.url) })
 
@@ -10,6 +13,11 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   dialect: 'mysql',
   logging: false, // chuj wie co to robi ale potrzebne do orm
 })
+
+const isProduction = process.env.NODE_ENV === 'production'
+const authCookieName = 'inventory_session'
+const loginAttempts = new Map()
+const dummyPasswordHash = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
 
 const Item = sequelize.define(
     'Item',
@@ -26,35 +34,14 @@ const Item = sequelize.define(
     { tableName: 'item', timestamps: false }
 )
 
-const ItemStatus = sequelize.define(
-  'ItemStatus',
-  { name: DataTypes.STRING },
-  { tableName: 'item_status', timestamps: false }
-)
-
-const Location = sequelize.define(
-  'Location',
-  {
-    building: DataTypes.STRING,
-    room: DataTypes.STRING,
-  },
-  { tableName: 'location', timestamps: false }
-)
-
-const User = sequelize.define(
-  'User',
-  { role_id: DataTypes.INTEGER },
-  { tableName: 'user', timestamps: false }
-)
-
-Item.belongsTo(ItemStatus, { foreignKey: 'status_id', as: 'status' })
-Item.belongsTo(Location, { foreignKey: 'location_id', as: 'location' })
-Item.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignedUser' })
-
 const app = express()
 
-app.use(cors())
-app.use(express.json())
+app.use(helmet())
+app.use(cors({
+  origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+  credentials: true,
+}))
+app.use(express.json({ limit: '10kb' }))
 
 app.get('/api/status', (req, res) => {
   res.status(200).json({
@@ -63,6 +50,59 @@ app.get('/api/status', (req, res) => {
   })
 })
 
+app.post('/api/auth/login', async (req, res) => {
+  const clientKey = getClientKey(req)
+  if (!canAttemptLogin(clientKey)) {
+    return res.status(429).json({ error: 'Zbyt wiele prób logowania. Spróbuj ponownie później.' })
+  }
+
+  const userId = Number(req.body?.userId)
+  const password = typeof req.body?.password === 'string' ? req.body.password : ''
+
+  if (!Number.isInteger(userId) || userId <= 0 || password.length < 1 || password.length > 256) {
+    registerFailedAttempt(clientKey)
+    return res.status(401).json({ error: 'Nieprawidłowy identyfikator lub hasło.' })
+  }
+
+  try {
+    const user = await User.findByPk(userId, { include: UserRole })
+    const passwordHash = user?.password_hash?.replace('$2y$', '$2b$') || dummyPasswordHash
+    const passwordMatches = await bcrypt.compare(password, passwordHash)
+
+    if (!user || !passwordMatches) {
+      registerFailedAttempt(clientKey)
+      return res.status(401).json({ error: 'Nieprawidłowy identyfikator lub hasło.' })
+    }
+
+    loginAttempts.delete(clientKey)
+    await createSession(res, user.id)
+
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        role: user.UserRole?.role || 'user',
+      },
+    })
+  } catch (err) {
+    return res.status(500).json({ error: 'Nie udało się zalogować.' })
+  }
+})
+
+app.get('/api/auth/me', requireAuth, (req, res) => {
+  res.status(200).json({ user: req.user })
+})
+
+app.post('/api/auth/logout', async (req, res) => {
+  const sessionToken = getCookie(req, authCookieName)
+  if (sessionToken) {
+    await Session.destroy({ where: { token_hash: hashToken(sessionToken) } })
+  }
+
+  res.setHeader('Set-Cookie', `${authCookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${isProduction ? '; Secure' : ''}`)
+  res.status(204).send()
+})
+
+app.use('/api/items', requireAuth)
 app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.findAll()
@@ -208,11 +248,88 @@ app.delete('/api/items/:id', async (req, res) => {
   }
 })
 
-app.listen(4000, () => {
-  console.log(
-    'ale mi dryga api dziala oh ahhhh oh ahhhh http://localhost:4000'
-  )
-})
+startServer()
+
+async function startServer() {
+  await Session.sync()
+  app.listen(4000, () => {
+    console.log('API działa na http://localhost:4000')
+  })
+}
+
+function getClientKey(req) {
+  return req.ip || req.socket.remoteAddress || 'unknown'
+}
+
+function canAttemptLogin(clientKey) {
+  const attempt = loginAttempts.get(clientKey)
+  if (!attempt) return true
+
+  if (attempt.resetAt <= Date.now()) {
+    loginAttempts.delete(clientKey)
+    return true
+  }
+
+  return attempt.count < 5
+}
+
+function registerFailedAttempt(clientKey) {
+  const attempt = loginAttempts.get(clientKey)
+  const now = Date.now()
+
+  if (!attempt || attempt.resetAt <= now) {
+    loginAttempts.set(clientKey, { count: 1, resetAt: now + 15 * 60 * 1000 })
+    return
+  }
+
+  attempt.count += 1
+}
+
+async function createSession(res, userId) {
+  const sessionToken = randomBytes(32).toString('base64url')
+  await Session.create({
+    token_hash: hashToken(sessionToken),
+    user_id: userId,
+    expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000),
+  })
+
+  const cookie = `${authCookieName}=${sessionToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${isProduction ? '; Secure' : ''}`
+  res.setHeader('Set-Cookie', cookie)
+}
+
+function hashToken(token) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+function getCookie(req, name) {
+  const cookies = req.headers.cookie?.split(';') || []
+  const cookie = cookies.find((entry) => entry.trim().startsWith(`${name}=`))
+  return cookie ? cookie.trim().slice(name.length + 1) : null
+}
+
+async function requireAuth(req, res, next) {
+  try {
+    const sessionToken = getCookie(req, authCookieName)
+    const session = sessionToken
+      ? await Session.findOne({ where: { token_hash: hashToken(sessionToken) } })
+      : null
+    const user = session && session.expires_at > new Date()
+      ? await User.findByPk(session.user_id, { include: UserRole })
+      : null
+
+    if (!user) {
+      return res.status(401).json({ error: 'Wymagane logowanie.' })
+    }
+
+    req.user = {
+      id: user.id,
+      role: user.UserRole?.role || 'user',
+    }
+    return next()
+  } catch {
+    return res.status(401).json({ error: 'Wymagane logowanie.' })
+  }
+}
 
 function validateItem(data) {
 if (!data.inventory_number || typeof data.inventory_number !== 'string')

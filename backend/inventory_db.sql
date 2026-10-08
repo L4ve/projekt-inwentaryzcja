@@ -55,6 +55,18 @@ CREATE TABLE `user` (
         ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `auth_session` (
+    `token_hash` CHAR(64) PRIMARY KEY,
+    `user_id`    INT NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    KEY `idx_auth_session_user` (`user_id`),
+    KEY `idx_auth_session_expiry` (`expires_at`),
+    CONSTRAINT `fk_auth_session_user`
+        FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---------------------------------------------------------------------
 -- Sprzet
 -- ---------------------------------------------------------------------
@@ -153,9 +165,9 @@ INSERT INTO `audit_action` (`id`, `name`) VALUES
 -- =====================================================================
 
 INSERT INTO `user` (`id`, `role_id`, `password_hash`) VALUES
-    (1, 1, '$2y$10$e0NRzQ7VQKZ8YQ4XqjKZ8eKq5qZ5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z'),
-    (2, 2, '$2y$10$e0NRzQ7VQKZ8YQ4XqjKZ8eKq5qZ5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z'),
-    (3, 3, '$2y$10$e0NRzQ7VQKZ8YQ4XqjKZ8eKq5qZ5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z');
+    (1, 1, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6'),
+    (2, 2, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6'),
+    (3, 3, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6');
 
 INSERT INTO `item`
     (`inventory_number`, `manufacturer`, `model`, `purchase_date`,
