@@ -1,8 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import Sidebar from "./components/sidebar";
-import EquipmentTable from "./components/EquipmentTable";
-import { equipment } from "./data/equipment";
+import Items from "./components/Items";
 
 function App() {
   const [search, setSearch] = useState("");
@@ -43,7 +42,7 @@ function App() {
                   </select>
                 </div>
               </div>
-              <EquipmentTable equipment={equipment} />
+              <Items/>
             </>
           )}
 

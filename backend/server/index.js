@@ -26,6 +26,31 @@ const Item = sequelize.define(
     { tableName: 'item', timestamps: false }
 )
 
+const ItemStatus = sequelize.define(
+  'ItemStatus',
+  { name: DataTypes.STRING },
+  { tableName: 'item_status', timestamps: false }
+)
+
+const Location = sequelize.define(
+  'Location',
+  {
+    building: DataTypes.STRING,
+    room: DataTypes.STRING,
+  },
+  { tableName: 'location', timestamps: false }
+)
+
+const User = sequelize.define(
+  'User',
+  { role_id: DataTypes.INTEGER },
+  { tableName: 'user', timestamps: false }
+)
+
+Item.belongsTo(ItemStatus, { foreignKey: 'status_id', as: 'status' })
+Item.belongsTo(Location, { foreignKey: 'location_id', as: 'location' })
+Item.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignedUser' })
+
 const app = express()
 
 app.use(cors())
@@ -41,6 +66,23 @@ app.get('/api/status', (req, res) => {
 app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.findAll()
+
+    res.status(200).json(items)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/items/details', async (req, res) => {
+  try {
+    const items = await Item.findAll({
+      attributes: { exclude: ['location_id', 'status_id', 'assigned_to'] },
+      include: [
+        { model: ItemStatus, as: 'status', attributes: ['id', 'name'] },
+        { model: Location, as: 'location', attributes: ['id', 'building', 'room'] },
+        { model: User, as: 'assignedUser', attributes: ['id', 'role_id'] },
+      ],
+    })
 
     res.status(200).json(items)
   } catch (err) {

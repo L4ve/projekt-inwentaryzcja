@@ -1,8 +1,4 @@
 import { useState } from "react";
-import EquipmentTable from "./components/EquipmentTable";
-import { equipment } from "./data/equipment";
-
-
 
 function EquipmentPage() {
   const [search, setSearch] = useState("");
@@ -34,7 +30,7 @@ function EquipmentPage() {
           </select>
         </div>
       </div>
-      <EquipmentTable equipment={equipment} />
+      <Items/>
     </>
   );
 }
