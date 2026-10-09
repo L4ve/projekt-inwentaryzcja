@@ -50,32 +50,18 @@ function Items() {
         </thead>
         <tbody>
           {items.map((item) => {
-            const status = statusLabels[item.status?.name] ?? {
-              label: item.status?.name ?? 'Nieznany',
-              variant: 'archive',
-            }
+            const status = statusLabels[item.status?.name] ?? { label: item.status?.name ?? 'Nieznany', variant: 'archive',}
 
             return (
               <tr key={item.id}>
                 <td className="inventory">{item.inventory_number}</td>
-                <td className="product">
-                  {item.manufacturer} {item.model}
-                </td>
+                <td className="product">{item.manufacturer} {item.model}</td>
                 <td>
-                  {item.location
-                    ? `${item.location.building}, ${item.location.room}`
-                    : <span className="dash">—</span>}
-                </td>
-                <td>
-                  {item.assignedUser
-                    ? `Użytkownik ${item.assignedUser.id} (rola ${item.assignedUser.role_id})`
-                    : <span className="dash">—</span>}
-                </td>
+                  {item.location ? `${item.location.building}, ${item.location.room}` : <span className="dash">—</span>}</td>
+                <td>{item.assignedUser ? `Użytkownik ${item.assignedUser.id} (rola ${item.assignedUser.role_id})` : <span className="dash">—</span>}</td>
                 <td>
                   <span className={`status-pill ${status.variant}`}>
-                    <span className="status-pill-dot" />
-                    {status.label}
-                  </span>
+                    <span className="status-pill-dot" />{status.label}</span>
                 </td>
               </tr>
             )

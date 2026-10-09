@@ -11,13 +11,38 @@ dotenv.config({ path: new URL('.env', import.meta.url) })
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
   host: process.env.DB_HOST,
   dialect: 'mysql',
-  logging: false, // chuj wie co to robi ale potrzebne do orm
+  logging: false,
 })
 
 const isProduction = process.env.NODE_ENV === 'production'
 const authCookieName = 'inventory_session'
 const loginAttempts = new Map()
 const dummyPasswordHash = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+
+// --- DEFINICJE MODELI BAZY DANYCH ---
+const UserRole = sequelize.define('UserRole', {
+  role: DataTypes.STRING,
+}, { tableName: 'user_role', timestamps: false })
+
+const User = sequelize.define('User', {
+  password_hash: DataTypes.STRING,
+  role_id: DataTypes.INTEGER,
+}, { tableName: 'user', timestamps: false })
+
+const Session = sequelize.define('Session', {
+  token_hash: DataTypes.STRING,
+  user_id: DataTypes.INTEGER,
+  expires_at: DataTypes.DATE,
+}, { tableName: 'session', timestamps: false })
+
+const ItemStatus = sequelize.define('ItemStatus', {
+  name: DataTypes.STRING,
+}, { tableName: 'item_status', timestamps: false })
+
+const Location = sequelize.define('Location', {
+  building: DataTypes.STRING,
+  room: DataTypes.STRING,
+}, { tableName: 'location', timestamps: false })
 
 const Item = sequelize.define(
     'Item',
@@ -34,6 +59,12 @@ const Item = sequelize.define(
     { tableName: 'item', timestamps: false }
 )
 
+// --- ASOCJACJE (POWIĄZANIA) ---
+Item.belongsTo(ItemStatus, { foreignKey: 'status_id', as: 'status' })
+Item.belongsTo(Location, { foreignKey: 'location_id', as: 'location' })
+Item.belongsTo(User, { foreignKey: 'assigned_to', as: 'assignedUser' })
+User.belongsTo(UserRole, { foreignKey: 'role_id', as: 'UserRole' })
+
 const app = express()
 
 app.use(helmet())
@@ -42,6 +73,8 @@ app.use(cors({
   credentials: true,
 }))
 app.use(express.json({ limit: '10kb' }))
+
+// --- ROUTING ---
 
 app.get('/api/status', (req, res) => {
   res.status(200).json({
@@ -65,7 +98,9 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   try {
-    const user = await User.findByPk(userId, { include: UserRole })
+    const user = await User.findByPk(userId, { 
+      include: { model: UserRole, as: 'UserRole' } 
+    })
     const passwordHash = user?.password_hash?.replace('$2y$', '$2b$') || dummyPasswordHash
     const passwordMatches = await bcrypt.compare(password, passwordHash)
 
@@ -84,7 +119,11 @@ app.post('/api/auth/login', async (req, res) => {
       },
     })
   } catch (err) {
-    return res.status(500).json({ error: 'Nie udało się zalogować.' })
+    console.error('LOGIN ERROR:', err)
+    return res.status(500).json({
+      error: 'Nie udało się zalogować.',
+      details: err.message,
+    })
   }
 })
 
@@ -102,18 +141,9 @@ app.post('/api/auth/logout', async (req, res) => {
   res.status(204).send()
 })
 
-app.use('/api/items', requireAuth)
-app.get('/api/items', async (req, res) => {
-  try {
-    const items = await Item.findAll()
+// --- ENDPOINTY DLA ITEMÓW ---
 
-    res.status(200).json(items)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.get('/api/items/details', async (req, res) => {
+app.get('/api/items/details', requireAuth, async (req, res) => {
   try {
     const items = await Item.findAll({
       attributes: { exclude: ['location_id', 'status_id', 'assigned_to'] },
@@ -130,13 +160,11 @@ app.get('/api/items/details', async (req, res) => {
   }
 })
 
-app.get('/api/items/:id', async (req, res) => {
+app.get('/api/items/:id', requireAuth, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({
-        error: 'Item not found',
-      })
+      return res.status(404).json({ error: 'Item not found' })
     }
 
     res.status(200).json(item)
@@ -145,7 +173,16 @@ app.get('/api/items/:id', async (req, res) => {
   }
 })
 
-app.post('/api/items', async (req, res) => {
+app.get('/api/items', requireAuth, async (req, res) => {
+  try {
+    const items = await Item.findAll()
+    res.status(200).json(items)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/items', requireAuth, async (req, res) => {
   try {
     const {
       inventory_number,
@@ -158,11 +195,7 @@ app.post('/api/items', async (req, res) => {
       assigned_to = null,
     } = req.body
 
-    const validationError = validateItem({
-      inventory_number,
-      purchase_price,
-    })
-
+    const validationError = validateItem({ inventory_number, purchase_price })
     if (validationError) {
       return res.status(400).json({ error: validationError })
     }
@@ -181,22 +214,18 @@ app.post('/api/items', async (req, res) => {
     res.status(201).json(item)
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({
-        error: 'Inventory number already exists',
-      })
+      return res.status(409).json({ error: 'Inventory number already exists' })
     }
 
     res.status(500).json({ error: err.message })
   }
 })
 
-app.patch('/api/items/:id', async (req, res) => {
+app.patch('/api/items/:id', requireAuth, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({
-        error: 'Item not found',
-      })
+      return res.status(404).json({ error: 'Item not found' })
     }
 
     const {
@@ -221,28 +250,21 @@ app.patch('/api/items/:id', async (req, res) => {
       assigned_to,
     })
 
-    res.status(200).json({
-      message: 'Item updated',
-    })
+    res.status(200).json({ message: 'Item updated' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.delete('/api/items/:id', async (req, res) => {
+app.delete('/api/items/:id', requireAuth, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({
-        error: 'Item not found',
-      })
+      return res.status(404).json({ error: 'Item not found' })
     }
 
     await item.destroy()
-
-    res.status(200).json({
-      message: 'Item deleted',
-    })
+    res.status(200).json({ message: 'Item deleted' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -251,10 +273,14 @@ app.delete('/api/items/:id', async (req, res) => {
 startServer()
 
 async function startServer() {
-  await Session.sync()
-  app.listen(4000, () => {
-    console.log('API działa na http://localhost:4000')
-  })
+  try {
+    await sequelize.sync() // Zamiast authenticate() - to połączy się i automatycznie utworzy brakujące tabele
+    app.listen(4000, () => {
+      console.log('API działa na http://localhost:4000')
+    })
+  } catch (err) {
+    console.error('Błąd połączenia z bazą danych:', err)
+  }
 }
 
 function getClientKey(req) {
@@ -314,7 +340,9 @@ async function requireAuth(req, res, next) {
       ? await Session.findOne({ where: { token_hash: hashToken(sessionToken) } })
       : null
     const user = session && session.expires_at > new Date()
-      ? await User.findByPk(session.user_id, { include: UserRole })
+      ? await User.findByPk(session.user_id, { 
+          include: { model: UserRole, as: 'UserRole' } 
+        })
       : null
 
     if (!user) {
@@ -332,14 +360,14 @@ async function requireAuth(req, res, next) {
 }
 
 function validateItem(data) {
-if (!data.inventory_number || typeof data.inventory_number !== 'string')
-  return 'Inventory number is required'
+  if (!data.inventory_number || typeof data.inventory_number !== 'string')
+    return 'Inventory number is required'
 
-if (data.purchase_price !== null && data.purchase_price !== undefined) {
-  const purchasePrice = Number(data.purchase_price)
-  if (!Number.isFinite(purchasePrice) || purchasePrice < 0)
-    return 'Purchase price must be a non-negative number'
-}
+  if (data.purchase_price !== null && data.purchase_price !== undefined) {
+    const purchasePrice = Number(data.purchase_price)
+    if (!Number.isFinite(purchasePrice) || purchasePrice < 0)
+      return 'Purchase price must be a non-negative number'
+  }
 
-return null
+  return null
 }

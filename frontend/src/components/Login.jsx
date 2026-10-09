@@ -40,33 +40,12 @@ function Login({ apiUrl, onLogin }) {
           <h1>Zaloguj się</h1>
           <p>Wprowadź dane, aby uzyskać dostęp do systemu.</p>
         </div>
-
         <label htmlFor="user-id">Identyfikator użytkownika</label>
-        <input
-          id="user-id"
-          type="number"
-          min="1"
-          inputMode="numeric"
-          value={userId}
-          onChange={(event) => setUserId(event.target.value)}
-          autoComplete="username"
-          required
-        />
-
+        <input id="user-id" type="number" min="1" inputMode="numeric" value={userId} onChange={(event) => setUserId(event.target.value)} autoComplete="username" required/>
         <label htmlFor="password">Hasło</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          autoComplete="current-password"
-          required
-        />
-
+        <input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required/>
         {error && <p className="login-error" role="alert">{error}</p>}
-
-        <button className="login-button" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Logowanie..." : "Zaloguj się"}
+        <button className="login-button" type="submit" disabled={isSubmitting}> {isSubmitting ? "Logowanie..." : "Zaloguj się"}
         </button>
       </form>
     </main>

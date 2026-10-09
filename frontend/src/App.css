@@ -559,21 +559,3 @@ tbody tr:last-child td {
   color: #ffffff;
   text-decoration: underline;
 }
-
-@media (max-width: 700px) {
-  .login-card {
-    padding: 28px 22px;
-  }
-
-  .session-actions {
-    gap: 8px;
-  }
-
-  .role-badge {
-    padding-inline: 8px;
-    font-size: 11px;
-  }
-
-  .logout-button {
-    font-size: 12px;
-  }
