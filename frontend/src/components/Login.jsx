@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function Login({ apiUrl, onLogin }) {
+function Login({ apiUrl, onLogin, onCancel }) {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -47,6 +47,7 @@ function Login({ apiUrl, onLogin }) {
         {error && <p className="login-error" role="alert">{error}</p>}
         <button className="login-button" type="submit" disabled={isSubmitting}> {isSubmitting ? "Logowanie..." : "Zaloguj się"}
         </button>
+        <button className="login-button" type="button" onClick={onCancel}>Wróć</button>
       </form>
     </main>
   );

@@ -143,7 +143,7 @@ app.post('/api/auth/logout', async (req, res) => {
 
 // --- ENDPOINTY DLA ITEMÓW ---
 
-app.get('/api/items/details', requireAuth, async (req, res) => {
+app.get('/api/items/details', async (req, res) => {
   try {
     const items = await Item.findAll({
       attributes: { exclude: ['location_id', 'status_id', 'assigned_to'] },
@@ -160,7 +160,7 @@ app.get('/api/items/details', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/items/:id', requireAuth, async (req, res) => {
+app.get('/api/items/:id', async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
@@ -173,7 +173,7 @@ app.get('/api/items/:id', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/items', requireAuth, async (req, res) => {
+app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.findAll()
     res.status(200).json(items)
@@ -182,7 +182,7 @@ app.get('/api/items', requireAuth, async (req, res) => {
   }
 })
 
-app.post('/api/items', requireAuth, async (req, res) => {
+app.post('/api/items', requireAuth, onlyAdmin, async (req, res) => {
   try {
     const {
       inventory_number,
@@ -221,7 +221,7 @@ app.post('/api/items', requireAuth, async (req, res) => {
   }
 })
 
-app.patch('/api/items/:id', requireAuth, async (req, res) => {
+app.patch('/api/items/:id', requireAuth, onlyAdmin, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
@@ -256,7 +256,7 @@ app.patch('/api/items/:id', requireAuth, async (req, res) => {
   }
 })
 
-app.delete('/api/items/:id', requireAuth, async (req, res) => {
+app.delete('/api/items/:id', requireAuth, onlyAdmin, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
@@ -265,6 +265,24 @@ app.delete('/api/items/:id', requireAuth, async (req, res) => {
 
     await item.destroy()
     res.status(200).json({ message: 'Item deleted' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/locations', async (req, res) => {
+  try {
+    const locations = await Location.findAll()
+    res.json(locations)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/items/:id/location', requireAuth, adminOrManager, async (req, res) => {
+  try {
+    await Item.update({ location_id: req.body.location_id }, { where: { id: req.params.id } })
+    res.json({ message: 'Item moved' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -331,6 +349,20 @@ function getCookie(req, name) {
   const cookies = req.headers.cookie?.split(';') || []
   const cookie = cookies.find((entry) => entry.trim().startsWith(`${name}=`))
   return cookie ? cookie.trim().slice(name.length + 1) : null
+}
+
+function onlyAdmin(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Brak uprawnień.' })
+  }
+  next()
+}
+
+function adminOrManager(req, res, next) {
+  if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+    return res.status(403).json({ error: 'Brak uprawnień.' })
+  }
+  next()
 }
 
 async function requireAuth(req, res, next) {

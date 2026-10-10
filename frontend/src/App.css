@@ -559,3 +559,48 @@ tbody tr:last-child td {
   color: #ffffff;
   text-decoration: underline;
 }
+.item-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+
+.add-button {
+  display: block;
+  margin: 12px;
+}
+
+.row-actions select {
+  max-width: 100%;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.main > .items.with-actions th,
+.main > .items.with-actions td {
+  width: auto;
+}
+
+.main > .items.with-actions th:last-child,
+.main > .items.with-actions td:last-child {
+  width: 24%;
+}
+
+.add-button,
+.item-form button,
+.item-form input,
+.item-form select,
+.row-actions button,
+.row-actions select {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}

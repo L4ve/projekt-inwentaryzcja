@@ -13,6 +13,7 @@ function App() {
   const [activePage, setActivePage] = useState("equipment");
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/auth/me`, { credentials: "include" })
@@ -28,14 +29,20 @@ function App() {
       credentials: "include",
     });
     setUser(null);
+    setActivePage("equipment");
+  }
+
+  function handleLogin(loggedUser) {
+    setUser(loggedUser);
+    setShowLogin(false);
   }
 
   if (!authChecked) {
     return <div className="auth-loading">Sprawdzanie sesji...</div>;
   }
 
-  if (!user) {
-    return <Login apiUrl={API_URL} onLogin={setUser} />;
+  if (showLogin) {
+    return <Login apiUrl={API_URL} onLogin={handleLogin} onCancel={() => setShowLogin(false)} />;
   }
 
   return (
@@ -45,8 +52,14 @@ function App() {
           📦 Ewidencja <span>Sprzętu</span>
         </div>
         <div className="session-actions">
-          <span className="role-badge">Rola: {user.role.toUpperCase()}</span>
-          <button className="logout-button" type="button" onClick={handleLogout}>Wyloguj</button>
+          {user ? (
+            <>
+              <span className="role-badge">Rola: {user.role.toUpperCase()}</span>
+              <button className="logout-button" type="button" onClick={handleLogout}>Wyloguj</button>
+            </>
+          ) : (
+            <button className="logout-button" type="button" onClick={() => setShowLogin(true)}>Zaloguj</button>
+          )}
         </div>
       </header>
       <div className="layout">
@@ -75,7 +88,7 @@ function App() {
                   </select>
                 </div>
               </div>
-              <Items/>
+              <Items role={user?.role} />
             </>
           )}
 
