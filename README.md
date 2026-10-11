@@ -77,6 +77,20 @@ Vite wyświetli adres lokalny, zazwyczaj:
 http://localhost:5173
 ```
 
+## Logowanie i role
+
+Aby zobaczyć listę sprzętu, trzeba się zalogować (po `id` użytkownika i haśle). Uprawnienia zależą od roli użytkownika:
+
+| Rola | `id` roli | Uprawnienia |
+| --- | --- | --- |
+| `user` | `3` | Podgląd listy sprzętu |
+| `manager` (moderator) | `2` | Podgląd oraz przenoszenie sprzętu (zmiana lokalizacji) |
+| `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu |
+
+W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”, a admin dodaje sprzęt przyciskiem „Dodaj sprzęt” nad tabelą. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
+
+Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe (użytkownicy o `id` 1, 2 i 3, wspólne hasło `haslo123`), przeznaczone tylko do rozwoju.
+
 ## API
 
 Base URL:
@@ -85,10 +99,115 @@ Base URL:
 http://localhost:4000
 ```
 
+### Status API
+
+```http
+GET /api/status
+```
+
+Dostęp: bez logowania. Odpowiedź:
+
+```json
+{
+  "status": "ok",
+  "message": "API działa"
+}
+```
+
+Pozostałe endpointy, poza logowaniem, wymagają zalogowania. Bez sesji zwracają `401 Unauthorized`.
+
+### Logowanie
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+Przykładowe żądanie:
+
+```json
+{
+  "userId": 1,
+  "password": "haslo123"
+}
+```
+
+Poprawne logowanie ustawia ciasteczko sesji i zwraca użytkownika wraz z rolą:
+
+```json
+{
+  "user": {
+    "id": 1,
+    "role": "admin"
+  }
+}
+```
+
+Możliwe błędy:
+
+- `401 Unauthorized` — nieprawidłowy identyfikator lub hasło,
+- `429 Too Many Requests` — zbyt wiele nieudanych prób logowania.
+
+### Sprawdzenie sesji
+
+```http
+GET /api/auth/me
+```
+
+Dostęp: zalogowani. Zwraca użytkownika w takim samym formacie jak logowanie. Bez sesji zwraca `401 Unauthorized`.
+
+### Wylogowanie
+
+```http
+POST /api/auth/logout
+```
+
+Kończy sesję i zwraca `204 No Content`.
+
 ### Pobranie wszystkich elementów
 
 ```http
 GET /api/items
+```
+
+Dostęp: każdy zalogowany użytkownik.
+
+### Pobranie elementów wraz ze szczegółami
+
+```http
+GET /api/items/details
+```
+
+Dostęp: każdy zalogowany użytkownik. Zamiast `location_id`, `status_id` i `assigned_to` zwraca obiekty `location`, `status` i `assignedUser` (lub `null`, gdy brak):
+
+```json
+[
+  {
+    "id": 1,
+    "inventory_number": "INV-2024-001",
+    "manufacturer": "Dell",
+    "model": "Latitude 5540",
+    "purchase_date": "2024-03-12",
+    "purchase_price": "4899.00",
+    "status": { "id": 1, "name": "active" },
+    "location": { "id": 1, "building": "Budynek A", "room": "101" },
+    "assignedUser": { "id": 3, "role_id": 3 }
+  }
+]
+```
+
+### Pobranie lokalizacji
+
+```http
+GET /api/locations
+```
+
+Dostęp: każdy zalogowany użytkownik. Zwraca listę lokalizacji:
+
+```json
+[
+  { "id": 1, "building": "Budynek A", "room": "101" }
+]
 ```
 
 ### Pobranie elementu po ID
@@ -96,6 +215,8 @@ GET /api/items
 ```http
 GET /api/items/:id
 ```
+
+Dostęp: każdy zalogowany użytkownik.
 
 Jeśli element nie istnieje:
 
@@ -111,6 +232,8 @@ Jeśli element nie istnieje:
 POST /api/items
 Content-Type: application/json
 ```
+
+Dostęp: tylko `admin`.
 
 Przykładowe żądanie:
 
@@ -138,7 +261,7 @@ Poprawne utworzenie elementu zwraca `201 Created` oraz zapisany rekord:
   "manufacturer": "Dell",
   "model": "Latitude 5540",
   "purchase_date": "2026-01-15",
-  "purchase_price": "4899.00",
+  "purchase_price": 4899,
   "location_id": 1,
   "status_id": 1,
   "assigned_to": 3
@@ -157,6 +280,8 @@ Możliwe błędy:
 PATCH /api/items/:id
 Content-Type: application/json
 ```
+
+Dostęp: tylko `admin`.
 
 Przykład:
 
@@ -195,6 +320,8 @@ Odpowiedź:
 DELETE /api/items/:id
 ```
 
+Dostęp: tylko `admin`.
+
 Odpowiedź:
 
 ```json
@@ -202,6 +329,33 @@ Odpowiedź:
   "message": "Item deleted"
 }
 ```
+
+### Przeniesienie elementu
+
+```http
+PATCH /api/items/:id/location
+Content-Type: application/json
+```
+
+Dostęp: `admin` oraz `manager`.
+
+Przykład:
+
+```json
+{
+  "location_id": 2
+}
+```
+
+Odpowiedź:
+
+```json
+{
+  "message": "Item moved"
+}
+```
+
+`location_id` musi wskazywać istniejącą lokalizację, w przeciwnym razie serwer zwróci `500`.
 
 ## Model danych
 
@@ -235,6 +389,9 @@ W bazie znajdują się również tabele:
 | `200` | Żądanie wykonane poprawnie |
 | `201` | Rekord utworzony |
 | `400` | Nieprawidłowe dane wejściowe |
+| `401` | Wymagane logowanie |
+| `403` | Brak uprawnień (rola nie pozwala na tę operację) |
 | `404` | Element nie istnieje |
 | `409` | Konflikt unikalnego numeru inwentarzowego |
+| `429` | Zbyt wiele nieudanych prób logowania |
 | `500` | Błąd serwera lub bazy danych |
