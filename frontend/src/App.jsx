@@ -75,7 +75,7 @@ function App() {
                   </select>
                 </div>
               </div>
-              <Items/>
+              <Items role={user.role} />
             </>
           )}
 
