@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getItemsWithDetails, getLocations, moveItem } from '../api/items'
+import { getItemsWithDetails, getLocations, getUsers, moveItem } from '../api/items'
 import ItemForm from './ItemForm'
 
 const statusLabels = {
@@ -30,18 +30,21 @@ function LocationSelect({ item, locations, onMove }) {
   )
 }
 
-function Items({ role }) {
+function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChange }) {
   const [items, setItems] = useState([])
   const [locations, setLocations] = useState([])
+  const [users, setUsers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
 
   const canMove = role === 'admin' || role === 'manager'
   const isAdmin = role === 'admin'
 
   async function loadItems() {
     try {
+      setError('')
       setItems(await getItemsWithDetails())
     } catch (error) {
       setError(error.message)
@@ -56,12 +59,31 @@ function Items({ role }) {
     } catch {
       setLocations([])
     }
+
+  }
+
+  async function loadUsers() {
+    if (!isAdmin) return
+    try {
+      setUsers(await getUsers())
+    } catch {
+      setUsers([])
+    }
   }
 
   useEffect(() => {
     loadItems()
     loadLocations()
+    loadUsers()
   }, [])
+
+  useEffect(() => {
+    const roles = [...new Set(items
+      .map((item) => item.assignedUser?.UserRole?.role)
+      .filter(Boolean))]
+      .sort((first, second) => first.localeCompare(second))
+    onAssignedUsersChange(roles)
+  }, [items, onAssignedUsersChange])
 
   function openForm() {
     setShowForm(true)
@@ -69,11 +91,18 @@ function Items({ role }) {
 
   function closeForm() {
     setShowForm(false)
+    setEditingItem(null)
   }
 
-  function handleSaved() {
+  async function handleSaved() {
     setShowForm(false)
-    loadItems()
+    setEditingItem(null)
+    await loadItems()
+  }
+
+  function openEditForm(item) {
+    setEditingItem(item)
+    setShowForm(true)
   }
 
   async function handleMove(id, locationId) {
@@ -105,13 +134,31 @@ function Items({ role }) {
 
   let form = null
   if (showForm) {
-    form = <ItemForm onSaved={handleSaved} onCancel={closeForm} />
+    form = <ItemForm key={editingItem?.id || 'new'} item={editingItem} locations={locations} users={users} onSaved={handleSaved} onCancel={closeForm} />
   }
 
   let moveHeader = null
   if (canMove) {
     moveHeader = <th>Przenieś do</th>
   }
+
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleItems = items.filter((item) => {
+    const searchableText = [
+      item.inventory_number,
+      item.manufacturer,
+      item.model,
+      item.location?.building,
+      item.location?.room,
+      item.assignedUser?.email,
+    ].filter(Boolean).join(" ").toLowerCase()
+    const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch)
+    const matchesStatus = statusFilter === "Wszystkie" || item.status?.name === statusFilter
+    const matchesAssigned = assignedFilter === "Wszyscy"
+      || (assignedFilter === "Nikt" && !item.assignedUser)
+      || item.assignedUser?.UserRole?.role === assignedFilter
+    return matchesSearch && matchesStatus && matchesAssigned
+  })
 
   return (
     <div className={tableClass}>
@@ -125,11 +172,12 @@ function Items({ role }) {
             <th>Lokalizacja</th>
             <th>Przypisany do</th>
             <th>Status</th>
+            {isAdmin && <th>Edytuj</th>}
             {moveHeader}
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const status = statusLabels[item.status?.name] ?? { label: item.status?.name ?? 'Nieznany', variant: 'archive',}
 
             let moveCell = null
@@ -147,18 +195,25 @@ function Items({ role }) {
                 <td className="product">{item.manufacturer} {item.model}</td>
                 <td>
                   {item.location ? `${item.location.building}, ${item.location.room}` : <span className="dash">—</span>}</td>
-                <td>{item.assignedUser ? `Użytkownik ${item.assignedUser.id} (rola ${item.assignedUser.role_id})` : <span className="dash">—</span>}</td>
+                <td>{item.assignedUser?.email || <span className="dash">—</span>}</td>
                 <td>
                   <span className={`status-pill ${status.variant}`}>
                     <span className="status-pill-dot" />{status.label}</span>
                 </td>
+                {isAdmin && (
+                  <td>
+                    <button type="button" className="edit-button" onClick={() => openEditForm(item)}>
+                      Edytuj
+                    </button>
+                  </td>
+                )}
                 {moveCell}
               </tr>
             )
           })}
         </tbody>
       </table>
-      {items.length === 0 && <p className="items-message">Brak sprzętu do wyświetlenia.</p>}
+      {visibleItems.length === 0 && <p className="items-message">Brak sprzętu do wyświetlenia.</p>}
     </div>
   )
 }

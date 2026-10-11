@@ -1,4 +1,4 @@
-function Sidebar({ setActivePage }) {
+function Sidebar({ setActivePage, isAdmin }) {
   return (
     <aside className="sidebar">
       <button className="nav-item" type="button" onClick={() => setActivePage("equipment")}>
@@ -7,9 +7,9 @@ function Sidebar({ setActivePage }) {
       <button className="nav-item" type="button" onClick={() => setActivePage("logs")}>
         <span>• Logi</span>
       </button>
-      <button className="nav-item" type="button" onClick={() => setActivePage("access")}>
+      {isAdmin && <button className="nav-item" type="button" onClick={() => setActivePage("access")}>
         <span>• Zarządzanie Dostępem</span>
-      </button>
+      </button>}
     </aside>
   );
 }

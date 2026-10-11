@@ -3,6 +3,7 @@ import "./App.css";
 import Sidebar from "./components/sidebar";
 import Login from "./components/Login";
 import Items from "./components/Items";
+import AccessPage from "./pages/accessPage";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
@@ -10,6 +11,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Wszystkie");
   const [assigned, setAssigned] = useState("Wszyscy");
+  const [assignedUsers, setAssignedUsers] = useState([]);
   const [activePage, setActivePage] = useState("equipment");
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -50,7 +52,7 @@ function App() {
         </div>
       </header>
       <div className="layout">
-        <Sidebar setActivePage={setActivePage} />
+        <Sidebar setActivePage={setActivePage} isAdmin={user.role === "admin"} />
         <main className="main"> {activePage === "equipment" && 
         ( <>
               <div className="heading-row">
@@ -60,22 +62,30 @@ function App() {
                 <div className="status">
                   <select value={status} onChange={(e) => setStatus(e.target.value)}>
                     <option value="Wszystkie">Status: Wszystkie</option>
-                    <option value="Aktywny">Status: Aktywny</option>
-                    <option value="Nieaktywny">Status: Nieaktywny</option>
-                    <option value="Wydany">Status: Wydany</option>
-                    <option value="Uszkodzony">Status: Uszkodzony</option>
+                    <option value="active">Status: Aktywny</option>
+                    <option value="in_repair">Status: W naprawie</option>
+                    <option value="in_storage">Status: W magazynie</option>
+                    <option value="retired">Status: Wycofany</option>
+                    <option value="lost">Status: Zaginiony</option>
                   </select>
                 </div>
                 <div className="assigned">
                   <select value={assigned} onChange={(e) => setAssigned(e.target.value)}>
                     <option value="Wszyscy">Przypisany: Wszyscy</option>
-                    <option value="Moderator">Przypisany: Moderator</option>
-                    <option value="Admin">Przypisany: Admin</option>
                     <option value="Nikt">Przypisany: Nikt</option>
+                    {assignedUsers.map((role) => (
+                      <option key={role} value={role}>Przypisany: {role}</option>
+                    ))}
                   </select>
                 </div>
               </div>
-              <Items role={user.role} />
+              <Items
+                role={user.role}
+                search={search}
+                statusFilter={status}
+                assignedFilter={assigned}
+                onAssignedUsersChange={setAssignedUsers}
+              />
             </>
           )}
 
@@ -84,7 +94,7 @@ function App() {
           )}
 
           {activePage === "access" && (
-            <h1>Zarządzanie Dostępem</h1>
+            user.role === "admin" ? <AccessPage apiUrl={API_URL} /> : <h1>Brak uprawnień</h1>
           )}
         </main>
       </div>

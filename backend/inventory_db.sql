@@ -46,8 +46,10 @@ CREATE TABLE `location` (
 
 CREATE TABLE `user` (
     `id`            INT AUTO_INCREMENT PRIMARY KEY,
+    `email`         VARCHAR(254) NOT NULL,
     `role_id`       INT NOT NULL,
     `password_hash` VARCHAR(255) NOT NULL,
+    UNIQUE KEY `uq_user_email` (`email`),
     KEY `idx_user_role` (`role_id`),
     CONSTRAINT `fk_user_role`
         FOREIGN KEY (`role_id`) REFERENCES `user_role` (`id`)
@@ -164,10 +166,10 @@ INSERT INTO `audit_action` (`id`, `name`) VALUES
 -- Hasla to hashe bcrypt dla ciagu: haslo123
 -- =====================================================================
 
-INSERT INTO `user` (`id`, `role_id`, `password_hash`) VALUES
-    (1, 1, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6'),
-    (2, 2, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6'),
-    (3, 3, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6');
+INSERT INTO `user` (`id`, `email`, `role_id`, `password_hash`) VALUES
+    (1, 'admin@example.com', 1, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6'),
+    (2, 'manager@example.com', 2, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6'),
+    (3, 'user@example.com', 3, '$2b$12$jEwCpJHymN9eTsWlBJbEAe4FDrnPS0K6UZ183ZTs9X//H6EhOnbK6');
 
 INSERT INTO `item`
     (`inventory_number`, `manufacturer`, `model`, `purchase_date`,

@@ -146,6 +146,19 @@ body {
   padding: var(--main-vertical-padding) var(--main-horizontal-padding);
 }
 
+.session-actions { display: flex; align-items: center; gap: 14px; }
+.role-badge { color: white; font-size: 12px; }
+.logout-button, .primary-button, .danger-button { border: 0; border-radius: 6px; padding: 9px 14px; cursor: pointer; }
+.logout-button, .primary-button { background: var(--color-primary); color: white; }
+.danger-button { background: #ffe0e0; color: #a51f1f; }
+.admin-page { text-align: left; }
+.admin-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.admin-form h2 { width: 100%; }
+.admin-form input, .admin-form select, td select { padding: 10px; border: 1px solid var(--color-border); border-radius: 6px; }
+.role-confirm-button { margin-left: 8px; padding: 7px 10px; }
+.admin-message { color: var(--color-status-active); margin-bottom: 12px; }
+.login-switch-button { border: 0; background: transparent; color: var(--color-primary-dark); cursor: pointer; margin-top: 12px; }
+
 .heading-row {
   display: flex;
   align-items: stretch;
@@ -585,6 +598,7 @@ tbody tr:last-child td {
 .add-button,
 .item-form button,
 .item-form input,
+.edit-button,
 .items select {
   padding: 6px 10px;
   max-width: 100%;
@@ -592,4 +606,10 @@ tbody tr:last-child td {
   border-radius: 8px;
   background: var(--color-surface);
   color: var(--color-text);
+}
+
+.edit-button {
+  cursor: pointer;
+  background: var(--color-primary);
+  color: white;
 }

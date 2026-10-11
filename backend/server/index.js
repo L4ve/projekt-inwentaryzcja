@@ -18,6 +18,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 const authCookieName = 'inventory_session'
 const loginAttempts = new Map()
 const dummyPasswordHash = '$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // --- DEFINICJE MODELI BAZY DANYCH ---
 const UserRole = sequelize.define('UserRole', {
@@ -25,15 +26,16 @@ const UserRole = sequelize.define('UserRole', {
 }, { tableName: 'user_role', timestamps: false })
 
 const User = sequelize.define('User', {
+  email: { type: DataTypes.STRING(254), unique: true },
   password_hash: DataTypes.STRING,
   role_id: DataTypes.INTEGER,
 }, { tableName: 'user', timestamps: false })
 
 const Session = sequelize.define('Session', {
-  token_hash: DataTypes.STRING,
+  token_hash: { type: DataTypes.STRING(64), primaryKey: true },
   user_id: DataTypes.INTEGER,
   expires_at: DataTypes.DATE,
-}, { tableName: 'session', timestamps: false })
+}, { tableName: 'auth_session', timestamps: false })
 
 const ItemStatus = sequelize.define('ItemStatus', {
   name: DataTypes.STRING,
@@ -89,16 +91,16 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(429).json({ error: 'Zbyt wiele prób logowania. Spróbuj ponownie później.' })
   }
 
-  const userId = Number(req.body?.userId)
+  const email = normalizeEmail(req.body?.email)
   const password = typeof req.body?.password === 'string' ? req.body.password : ''
 
-  if (!Number.isInteger(userId) || userId <= 0 || password.length < 1 || password.length > 256) {
+  if (!isValidEmail(email) || password.length < 1 || password.length > 256) {
     registerFailedAttempt(clientKey)
     return res.status(401).json({ error: 'Nieprawidłowy identyfikator lub hasło.' })
   }
 
   try {
-    const user = await User.findByPk(userId, { 
+    const user = await User.findOne({ where: { email },
       include: { model: UserRole, as: 'UserRole' } 
     })
     const passwordHash = user?.password_hash?.replace('$2y$', '$2b$') || dummyPasswordHash
@@ -122,8 +124,34 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('LOGIN ERROR:', err)
     return res.status(500).json({
       error: 'Nie udało się zalogować.',
-      details: err.message,
     })
+  }
+})
+
+app.post('/api/auth/register', async (req, res) => {
+  const email = normalizeEmail(req.body?.email)
+  const password = typeof req.body?.password === 'string' ? req.body.password : ''
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Podaj prawidłowy adres email.' })
+  }
+  if (password.length < 12 || password.length > 128) {
+    return res.status(400).json({ error: 'Hasło musi mieć od 12 do 128 znaków.' })
+  }
+
+  try {
+    const user = await User.create({
+      email,
+      password_hash: await bcrypt.hash(password, 12),
+      role_id: 3,
+    })
+    res.status(201).json({ message: 'Konto zostało utworzone.' })
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ error: 'Ten adres email jest już zajęty.' })
+    }
+    console.error('REGISTER ERROR:', err)
+    res.status(500).json({ error: 'Nie udało się utworzyć konta.' })
   }
 })
 
@@ -141,16 +169,93 @@ app.post('/api/auth/logout', async (req, res) => {
   res.status(204).send()
 })
 
+app.get('/api/admin/users', requireAuth, onlyAdmin, async (req, res) => {
+  const users = await User.findAll({
+    attributes: ['id', 'email', 'role_id'],
+    include: { model: UserRole, as: 'UserRole', attributes: ['role'] },
+    order: [['id', 'ASC']],
+  })
+  res.json(users.map(formatUser))
+})
+
+app.get('/api/admin/roles', requireAuth, onlyAdmin, async (req, res) => {
+  const roles = await UserRole.findAll({
+    attributes: ['id', 'role'],
+    order: [['id', 'ASC']],
+  })
+  res.json(roles)
+})
+
+app.post('/api/admin/users', requireAuth, onlyAdmin, async (req, res) => {
+  const email = normalizeEmail(req.body?.email)
+  const password = typeof req.body?.password === 'string' ? req.body.password : ''
+  const roleId = Number(req.body?.roleId)
+
+  if (!isValidEmail(email)) return res.status(400).json({ error: 'Podaj prawidłowy adres email.' })
+  if (password.length < 12 || password.length > 128) return res.status(400).json({ error: 'Hasło musi mieć od 12 do 128 znaków.' })
+  if (!Number.isInteger(roleId) || roleId <= 0) return res.status(400).json({ error: 'Wybierz prawidłową rolę.' })
+
+  try {
+    const role = await UserRole.findByPk(roleId)
+    if (!role) return res.status(400).json({ error: 'Nieprawidłowa rola.' })
+    const user = await User.create({
+      email,
+      password_hash: await bcrypt.hash(password, 12),
+      role_id: role.id,
+    })
+    res.status(201).json(formatUser(await User.findByPk(user.id, {
+      attributes: ['id', 'email', 'role_id'],
+      include: { model: UserRole, as: 'UserRole', attributes: ['role'] },
+    })))
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') return res.status(409).json({ error: 'Ten adres email jest już zajęty.' })
+    console.error('ADMIN CREATE USER ERROR:', err)
+    res.status(500).json({ error: 'Nie udało się utworzyć użytkownika.' })
+  }
+})
+
+app.patch('/api/admin/users/:id', requireAuth, onlyAdmin, async (req, res) => {
+  const userId = parsePositiveInteger(req.params.id)
+  const roleId = parsePositiveInteger(req.body?.roleId)
+  if (!userId || !roleId) return res.status(400).json({ error: 'Nieprawidłowe dane użytkownika.' })
+
+  const user = await User.findByPk(userId)
+  const role = await UserRole.findByPk(roleId)
+  if (!user || !role) return res.status(404).json({ error: 'Użytkownik lub rola nie istnieje.' })
+  if (user.id === req.user.id && role.role !== 'admin') return res.status(400).json({ error: 'Nie możesz odebrać sobie roli administratora.' })
+  if (user.role_id === 1 && role.id !== 1 && await countAdmins() <= 1) {
+    return res.status(400).json({ error: 'System musi mieć co najmniej jednego administratora.' })
+  }
+
+  await user.update({ role_id: role.id })
+  res.json({ message: 'Rola została zmieniona.' })
+})
+
+app.delete('/api/admin/users/:id', requireAuth, onlyAdmin, async (req, res) => {
+  const userId = parsePositiveInteger(req.params.id)
+  const user = userId ? await User.findByPk(userId) : null
+  if (!user) return res.status(404).json({ error: 'Użytkownik nie istnieje.' })
+  if (user.id === req.user.id) return res.status(400).json({ error: 'Nie możesz usunąć własnego konta.' })
+  if (user.role_id === 1 && await countAdmins() <= 1) return res.status(400).json({ error: 'Nie można usunąć ostatniego administratora.' })
+
+  await user.destroy()
+  res.status(204).send()
+})
+
 // --- ENDPOINTY DLA ITEMÓW ---
 
 app.get('/api/items/details', requireAuth, async (req, res) => {
   try {
     const items = await Item.findAll({
-      attributes: { exclude: ['location_id', 'status_id', 'assigned_to'] },
       include: [
         { model: ItemStatus, as: 'status', attributes: ['id', 'name'] },
         { model: Location, as: 'location', attributes: ['id', 'building', 'room'] },
-        { model: User, as: 'assignedUser', attributes: ['id', 'role_id'] },
+        {
+          model: User,
+          as: 'assignedUser',
+          attributes: ['id', 'email', 'role_id'],
+          include: { model: UserRole, as: 'UserRole', attributes: ['role'] },
+        },
       ],
     })
 
@@ -228,16 +333,35 @@ app.patch('/api/items/:id', requireAuth, onlyAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Item not found' })
     }
 
-    const {
-      inventory_number,
-      manufacturer,
-      model,
-      purchase_date,
-      purchase_price,
-      location_id,
-      status_id,
-      assigned_to,
-    } = req.body
+    const inventory_number = typeof req.body.inventory_number === 'string'
+      ? req.body.inventory_number.trim()
+      : ''
+    const manufacturer = req.body.manufacturer || null
+    const model = req.body.model || null
+    const purchase_date = req.body.purchase_date || null
+    const purchase_price = req.body.purchase_price === null || req.body.purchase_price === ''
+      ? null
+      : Number(req.body.purchase_price)
+    const location_id = req.body.location_id === null || req.body.location_id === ''
+      ? null
+      : Number(req.body.location_id)
+    const status_id = Number(req.body.status_id)
+    const assigned_to = req.body.assigned_to === null || req.body.assigned_to === ''
+      ? null
+      : Number(req.body.assigned_to)
+
+    const validationError = validateItem({ inventory_number, purchase_price })
+    if (validationError || !Number.isInteger(status_id) || status_id <= 0) {
+      return res.status(400).json({ error: validationError || 'Nieprawidłowe dane sprzętu.' })
+    }
+    const [status, location, assignedUser] = await Promise.all([
+      ItemStatus.findByPk(status_id),
+      location_id === null ? null : Location.findByPk(location_id),
+      assigned_to === null ? null : User.findByPk(assigned_to),
+    ])
+    if (!status || (location_id !== null && !location) || (assigned_to !== null && !assignedUser)) {
+      return res.status(400).json({ error: 'Wybrany status, lokalizacja lub użytkownik nie istnieje.' })
+    }
 
     await item.update({
       inventory_number,
@@ -250,8 +374,11 @@ app.patch('/api/items/:id', requireAuth, onlyAdmin, async (req, res) => {
       assigned_to,
     })
 
-    res.status(200).json({ message: 'Item updated' })
+    res.status(200).json({ message: 'Item updated', item })
   } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ error: 'Inventory number already exists' })
+    }
     res.status(500).json({ error: err.message })
   }
 })
@@ -292,7 +419,7 @@ startServer()
 
 async function startServer() {
   try {
-    await sequelize.sync() // Zamiast authenticate() - to połączy się i automatycznie utworzy brakujące tabele
+    await sequelize.authenticate()
     app.listen(4000, () => {
       console.log('API działa na http://localhost:4000')
     })
@@ -302,7 +429,7 @@ async function startServer() {
 }
 
 function getClientKey(req) {
-  return req.ip || req.socket.remoteAddress || 'unknown'
+  return `${req.ip || req.socket.remoteAddress || 'unknown'}:${normalizeEmail(req.body?.email)}`
 }
 
 function canAttemptLogin(clientKey) {
@@ -386,14 +513,15 @@ async function requireAuth(req, res, next) {
       role: user.UserRole?.role || 'user',
     }
     return next()
-  } catch {
+  } catch (err) {
+    console.error('AUTH ERROR:', err)
     return res.status(401).json({ error: 'Wymagane logowanie.' })
   }
 }
 
 function validateItem(data) {
-  if (!data.inventory_number || typeof data.inventory_number !== 'string')
-    return 'Inventory number is required'
+  if (typeof data.inventory_number !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(data.inventory_number.trim()))
+    return 'Numer inwentarzowy ma nieprawidłowy format'
 
   if (data.purchase_price !== null && data.purchase_price !== undefined) {
     const purchasePrice = Number(data.purchase_price)
@@ -402,4 +530,30 @@ function validateItem(data) {
   }
 
   return null
+}
+
+function normalizeEmail(email) {
+  return typeof email === 'string' ? email.trim().toLowerCase() : ''
+}
+
+function isValidEmail(email) {
+  return email.length <= 254 && emailPattern.test(email)
+}
+
+function parsePositiveInteger(value) {
+  const number = Number(value)
+  return Number.isInteger(number) && number > 0 ? number : null
+}
+
+function formatUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    roleId: user.role_id,
+    role: user.UserRole?.role || 'user',
+  }
+}
+
+async function countAdmins() {
+  return User.count({ where: { role_id: 1 } })
 }
