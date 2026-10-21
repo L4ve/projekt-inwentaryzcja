@@ -36,7 +36,10 @@ npm install
    DB_USER=root
    DB_PASSWORD=
    DB_HOST=127.0.0.1
+   FRONTEND_ORIGIN=http://localhost:5173
    ```
+
+   `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie (domyślnie `http://localhost:5173`).
 
    Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
 
@@ -77,19 +80,27 @@ Vite wyświetli adres lokalny, zazwyczaj:
 http://localhost:5173
 ```
 
+Adres API frontend bierze ze zmiennej `VITE_API_URL` (domyślnie `http://localhost:4000`).
+
 ## Logowanie i role
 
-Aby zobaczyć listę sprzętu, trzeba się zalogować (po `id` użytkownika i haśle). Uprawnienia zależą od roli użytkownika:
+Aby korzystać z aplikacji, trzeba się zalogować (po adresie email i haśle). Logować się mogą tylko `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
 
 | Rola | `id` roli | Uprawnienia |
 | --- | --- | --- |
-| `user` | `3` | Podgląd listy sprzętu |
-| `manager` (moderator) | `2` | Podgląd oraz przenoszenie sprzętu (zmiana lokalizacji) |
-| `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu |
+| `manager` (moderator) | `2` | Podgląd listy sprzętu oraz przenoszenie sprzętu (zmiana lokalizacji) |
+| `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu oraz zarządzanie kontami i rolami |
+| `user` | `3` | Brak możliwości logowania (konto z tą rolą dostaje `403`) |
 
-W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”, a admin dodaje sprzęt przyciskiem „Dodaj sprzęt” nad tabelą. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
+W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj”, a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać i filtrować po statusie oraz roli przypisanego użytkownika. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
 
-Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe (użytkownicy o `id` 1, 2 i 3, wspólne hasło `haslo123`), przeznaczone tylko do rozwoju.
+Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe ze wspólnym hasłem `haslo123`, przeznaczone tylko do rozwoju:
+
+| Email | Rola |
+| --- | --- |
+| `admin@example.com` | `admin` |
+| `manager@example.com` | `manager` |
+| `user@example.com` | `user` |
 
 ## API
 
@@ -127,7 +138,7 @@ Przykładowe żądanie:
 
 ```json
 {
-  "userId": 1,
+  "email": "admin@example.com",
   "password": "haslo123"
 }
 ```
@@ -145,7 +156,8 @@ Poprawne logowanie ustawia ciasteczko sesji i zwraca użytkownika wraz z rolą:
 
 Możliwe błędy:
 
-- `401 Unauthorized` — nieprawidłowy identyfikator lub hasło,
+- `401 Unauthorized` — nieprawidłowy email lub hasło,
+- `403 Forbidden` — konto ma rolę `user` i nie może się logować,
 - `429 Too Many Requests` — zbyt wiele nieudanych prób logowania.
 
 ### Sprawdzenie sesji
@@ -178,7 +190,7 @@ Dostęp: każdy zalogowany użytkownik.
 GET /api/items/details
 ```
 
-Dostęp: każdy zalogowany użytkownik. Zamiast `location_id`, `status_id` i `assigned_to` zwraca obiekty `location`, `status` i `assignedUser` (lub `null`, gdy brak):
+Dostęp: każdy zalogowany użytkownik. Oprócz pól sprzętu (łącznie z `location_id`, `status_id` i `assigned_to`) zwraca obiekty `status`, `location` i `assignedUser` (lub `null`, gdy brak):
 
 ```json
 [
@@ -189,9 +201,12 @@ Dostęp: każdy zalogowany użytkownik. Zamiast `location_id`, `status_id` i `as
     "model": "Latitude 5540",
     "purchase_date": "2024-03-12",
     "purchase_price": "4899.00",
+    "location_id": 1,
+    "status_id": 1,
+    "assigned_to": 3,
     "status": { "id": 1, "name": "active" },
     "location": { "id": 1, "building": "Budynek A", "room": "101" },
-    "assignedUser": { "id": 3, "role_id": 3 }
+    "assignedUser": { "id": 3, "email": "user@example.com", "role_id": 3, "UserRole": { "role": "user" } }
   }
 ]
 ```
@@ -270,9 +285,9 @@ Poprawne utworzenie elementu zwraca `201 Created` oraz zapisany rekord:
 
 Możliwe błędy:
 
-- `400 Bad Request` — brak numeru inwentarzowego albo nieprawidłowa cena,
+- `400 Bad Request` — brak lub nieprawidłowy numer inwentarzowy albo nieprawidłowa cena,
 - `409 Conflict` — numer inwentarzowy już istnieje,
-- `500 Internal Server Error` — błąd serwera lub bazy danych.
+- `500 Internal Server Error` — błąd serwera lub bazy danych (także wtedy, gdy `status_id` lub `location_id` wskazuje nieistniejący rekord).
 
 ### Aktualizacja elementu
 
@@ -283,13 +298,20 @@ Content-Type: application/json
 
 Dostęp: tylko `admin`.
 
+Endpoint wymaga pełnego zestawu pól (jak przy dodawaniu, w tym `inventory_number`). Częściowa aktualizacja nie jest obsługiwana i zwraca `400`.
+
 Przykład:
 
 ```json
 {
+  "inventory_number": "INV-2026-003",
+  "manufacturer": "Dell",
+  "model": "Latitude 5540",
+  "purchase_date": "2026-01-15",
   "purchase_price": 4500.00,
   "location_id": 2,
-  "status_id": 1
+  "status_id": 1,
+  "assigned_to": 3
 }
 ```
 
@@ -306,13 +328,30 @@ status_id
 assigned_to
 ```
 
-Odpowiedź:
+Odpowiedź zawiera komunikat i zaktualizowany rekord:
 
 ```json
 {
-  "message": "Item updated"
+  "message": "Item updated",
+  "item": {
+    "id": 6,
+    "inventory_number": "INV-2026-003",
+    "manufacturer": "Dell",
+    "model": "Latitude 5540",
+    "purchase_date": "2026-01-15",
+    "purchase_price": 4500,
+    "location_id": 2,
+    "status_id": 1,
+    "assigned_to": 3
+  }
 }
 ```
+
+Możliwe błędy:
+
+- `400 Bad Request` — nieprawidłowe dane, w tym brak numeru inwentarzowego,
+- `404 Not Found` — element nie istnieje,
+- `409 Conflict` — numer inwentarzowy już istnieje.
 
 ### Usunięcie elementu
 
@@ -357,6 +396,106 @@ Odpowiedź:
 
 `location_id` musi wskazywać istniejącą lokalizację, w przeciwnym razie serwer zwróci `500`.
 
+### Lista użytkowników
+
+```http
+GET /api/admin/users
+```
+
+Dostęp: tylko `admin`. Odpowiedź:
+
+```json
+[
+  { "id": 1, "email": "admin@example.com", "roleId": 1, "role": "admin" }
+]
+```
+
+### Lista ról
+
+```http
+GET /api/admin/roles
+```
+
+Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom:
+
+```json
+[
+  { "id": 1, "role": "admin" },
+  { "id": 2, "role": "manager" },
+  { "id": 3, "role": "user" }
+]
+```
+
+### Dodanie użytkownika
+
+```http
+POST /api/admin/users
+Content-Type: application/json
+```
+
+Dostęp: tylko `admin`. To jedyny sposób zakładania kont.
+
+Przykładowe żądanie:
+
+```json
+{
+  "email": "nowy@example.com",
+  "password": "dlugiehaslo12345",
+  "roleId": 2
+}
+```
+
+Hasło musi mieć od 12 do 128 znaków. Poprawne utworzenie zwraca `201 Created` oraz użytkownika:
+
+```json
+{
+  "id": 4,
+  "email": "nowy@example.com",
+  "roleId": 2,
+  "role": "manager"
+}
+```
+
+Możliwe błędy:
+
+- `400 Bad Request` — nieprawidłowy email, hasło lub rola,
+- `409 Conflict` — adres email jest już zajęty.
+
+### Zmiana roli użytkownika
+
+```http
+PATCH /api/admin/users/:id
+Content-Type: application/json
+```
+
+Dostęp: tylko `admin`.
+
+Przykład:
+
+```json
+{
+  "roleId": 3
+}
+```
+
+Odpowiedź:
+
+```json
+{
+  "message": "Rola została zmieniona."
+}
+```
+
+Admin nie może odebrać sobie roli `admin`, a system musi mieć co najmniej jednego admina (w obu przypadkach `400 Bad Request`). Użytkownik, któremu zmieniono rolę na `user`, traci aktywną sesję.
+
+### Usunięcie użytkownika
+
+```http
+DELETE /api/admin/users/:id
+```
+
+Dostęp: tylko `admin`. Poprawne usunięcie zwraca `204 No Content`. Admin nie może usunąć własnego konta ani ostatniego admina (`400 Bad Request`), a nieistniejący użytkownik daje `404 Not Found`.
+
 ## Model danych
 
 Główna tabela `item` zawiera:
@@ -376,7 +515,8 @@ Główna tabela `item` zawiera:
 W bazie znajdują się również tabele:
 
 - `user_role`,
-- `user`,
+- `user` (z unikalnym adresem `email`),
+- `auth_session` (aktywne sesje logowania),
 - `item_status`,
 - `location`,
 - `audit_action`,
@@ -388,6 +528,7 @@ W bazie znajdują się również tabele:
 | --- | --- |
 | `200` | Żądanie wykonane poprawnie |
 | `201` | Rekord utworzony |
+| `204` | Operacja wykonana, brak treści w odpowiedzi |
 | `400` | Nieprawidłowe dane wejściowe |
 | `401` | Wymagane logowanie |
 | `403` | Brak uprawnień (rola nie pozwala na tę operację) |
