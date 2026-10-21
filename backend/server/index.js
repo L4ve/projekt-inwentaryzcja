@@ -111,13 +111,18 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Nieprawidłowy identyfikator lub hasło.' })
     }
 
+    const role = user.UserRole?.role || 'user'
+    if (!canLogIn(role)) {
+      return res.status(403).json({ error: 'To konto nie ma uprawnień do logowania.' })
+    }
+
     loginAttempts.delete(clientKey)
     await createSession(res, user.id)
 
     return res.status(200).json({
       user: {
         id: user.id,
-        role: user.UserRole?.role || 'user',
+        role,
       },
     })
   } catch (err) {
@@ -125,33 +130,6 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(500).json({
       error: 'Nie udało się zalogować.',
     })
-  }
-})
-
-app.post('/api/auth/register', async (req, res) => {
-  const email = normalizeEmail(req.body?.email)
-  const password = typeof req.body?.password === 'string' ? req.body.password : ''
-
-  if (!isValidEmail(email)) {
-    return res.status(400).json({ error: 'Podaj prawidłowy adres email.' })
-  }
-  if (password.length < 12 || password.length > 128) {
-    return res.status(400).json({ error: 'Hasło musi mieć od 12 do 128 znaków.' })
-  }
-
-  try {
-    const user = await User.create({
-      email,
-      password_hash: await bcrypt.hash(password, 12),
-      role_id: 3,
-    })
-    res.status(201).json({ message: 'Konto zostało utworzone.' })
-  } catch (err) {
-    if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({ error: 'Ten adres email jest już zajęty.' })
-    }
-    console.error('REGISTER ERROR:', err)
-    res.status(500).json({ error: 'Nie udało się utworzyć konta.' })
   }
 })
 
@@ -478,6 +456,10 @@ function getCookie(req, name) {
   return cookie ? cookie.trim().slice(name.length + 1) : null
 }
 
+function canLogIn(role) {
+  return role === 'admin' || role === 'manager'
+}
+
 function onlyAdmin(req, res, next) {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Brak uprawnień.' })
@@ -508,9 +490,14 @@ async function requireAuth(req, res, next) {
       return res.status(401).json({ error: 'Wymagane logowanie.' })
     }
 
+    const role = user.UserRole?.role || 'user'
+    if (!canLogIn(role)) {
+      return res.status(401).json({ error: 'Wymagane logowanie.' })
+    }
+
     req.user = {
       id: user.id,
-      role: user.UserRole?.role || 'user',
+      role,
     }
     return next()
   } catch (err) {

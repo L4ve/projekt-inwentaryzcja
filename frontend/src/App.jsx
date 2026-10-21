@@ -30,6 +30,7 @@ function App() {
       credentials: "include",
     });
     setUser(null);
+    setActivePage("equipment");
   }
 
   if (!authChecked) {

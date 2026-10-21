@@ -10,11 +10,9 @@ The API starts at `http://localhost:4000`.
 
 ## Logowanie
 
-Logowanie uses the unique `user.email` and a bcrypt `password_hash`:
+Logowanie uses the unique `user.email` and a bcrypt `password_hash`. Only users with the `admin` or `manager` role can log in, and accounts are created only by an admin (`POST /api/admin/users`):
 
 - `POST /api/auth/login` - body: `{ "email": "admin@example.com", "password": "..." }`
-- `POST /api/auth/register` - body: `{ "email": "new@example.com", "password": "..." }`;
-  new users always receive the `user` role and are not logged in automatically
 - `GET /api/auth/me` - sprawdzenie aktywnej sesji
 - `POST /api/auth/logout` - unieważnienie sesji
 
