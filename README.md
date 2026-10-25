@@ -82,6 +82,32 @@ http://localhost:5173
 
 Adres API frontend bierze ze zmiennej `VITE_API_URL` (domyślnie `http://localhost:4000`).
 
+## Struktura backendu
+
+Kod w `backend/server/` jest podzielony tak, że jedna funkcjonalność to jeden plik:
+
+```
+backend/server/
+├── index.js              # start serwera: middleware i podpięcie tras
+├── config.js             # wczytanie .env, stałe (cookie, tryb produkcyjny)
+├── db.js                 # połączenie z bazą (Sequelize)
+├── models/               # po jednym pliku na tabelę
+│   ├── Item.js, ItemStatus.js, Location.js
+│   ├── User.js, UserRole.js, Session.js
+│   └── index.js          # powiązania między modelami (belongsTo)
+├── middleware/
+│   └── auth.js           # requireAuth, onlyAdmin, adminOrManager, canLogIn
+├── routes/               # po jednym pliku na grupę endpointów
+│   ├── auth.js           # /api/auth (login, me, logout)
+│   ├── users.js          # /api/admin (użytkownicy i role)
+│   ├── items.js          # /api/items (CRUD sprzętu, szczegóły, przenoszenie)
+│   └── locations.js      # /api/locations
+└── utils/
+    ├── validation.js     # walidacja e-maila, ID i danych sprzętu
+    ├── session.js        # tworzenie sesji i obsługa ciasteczka
+    └── loginLimit.js     # limit prób logowania
+```
+
 ## Logowanie i role
 
 Aby korzystać z aplikacji, trzeba się zalogować (po adresie email i haśle). Logować się mogą tylko `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
