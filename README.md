@@ -118,7 +118,7 @@ Aby korzystać z aplikacji, trzeba się zalogować (po adresie email i haśle). 
 | `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu oraz zarządzanie kontami i rolami |
 | `user` | `3` | Brak możliwości logowania (konto z tą rolą dostaje `403`) |
 
-W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj”, a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać i filtrować po statusie oraz roli przypisanego użytkownika. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
+W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj”, a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
 
 Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe ze wspólnym hasłem `haslo123`, przeznaczone tylko do rozwoju:
 
