@@ -585,6 +585,11 @@ tbody tr:last-child td {
   margin: 12px;
 }
 
+.sort-select {
+  display: block;
+  margin: 12px;
+}
+
 .main > .items.with-actions th,
 .main > .items.with-actions td {
   width: auto;

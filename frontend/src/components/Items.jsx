@@ -38,6 +38,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [sortBy, setSortBy] = useState('inventory_number')
 
   const canMove = role === 'admin' || role === 'manager'
   const isAdmin = role === 'admin'
@@ -160,10 +161,31 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
     return matchesSearch && matchesStatus && matchesAssigned
   })
 
+  function compareItems(a, b) {
+    let first = a[sortBy]
+    let second = b[sortBy]
+
+    if (first === null) {
+      first = ''
+    }
+    if (second === null) {
+      second = ''
+    }
+
+    return String(first).localeCompare(String(second), 'pl')
+  }
+
+  const sortedItems = visibleItems.slice().sort(compareItems)
+
   return (
     <div className={tableClass}>
       {addButton}
       {form}
+      <select className="sort-select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+        <option value="inventory_number">Sortuj: numer inwentarzowy</option>
+        <option value="manufacturer">Sortuj: producent</option>
+        <option value="model">Sortuj: model</option>
+      </select>
       <table>
         <thead>
           <tr>
@@ -177,7 +199,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
           </tr>
         </thead>
         <tbody>
-          {visibleItems.map((item) => {
+          {sortedItems.map((item) => {
             const status = statusLabels[item.status?.name] ?? { label: item.status?.name ?? 'Nieznany', variant: 'archive',}
 
             let moveCell = null
