@@ -1,690 +1,564 @@
-Inventory API
+# Projekt inwentaryzacji
 
-REST API for managing inventory items.
+Prosta aplikacja do ewidencji sprzętu.
 
-The API is used by the React frontend to communicate with the MySQL database through an Express server.
+## Specyfikacja
+
+- Frontend: React + Vite
+- Backend: Node.js + Express, MySQL, XAMPP
+
+## Wymagania
+
+- Node.js,
+- npm,
+- XAMPP.
+
+## Instalacja
+
+Zależności instaluje się osobno dla backendu i frontendu:
+
+```powershell
+cd backend/server
+npm install
+
+cd ../../frontend
+npm install
+```
+
+## Konfiguracja bazy danych
+
+1. Uruchom moduł MySQL w XAMPP.
+2. Zaimportuj plik [`backend/inventory_db.sql`](./backend/inventory_db.sql) w phpMyAdmin
+3. Utwórz plik `backend/server/.env`:
+
+   ```env
+   DB_NAME=inwentarz
+   DB_USER=root
+   DB_PASSWORD=
+   DB_HOST=127.0.0.1
+   FRONTEND_ORIGIN=http://localhost:5173
+   ```
+
+   `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie (domyślnie `http://localhost:5173`).
+
+   Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
+
+
+## Uruchomienie
+
+### Backend
+
+```powershell
+cd backend/server
+npm install
+npm install sequelize
+npm run dev
+```
+
+API będzie dostępne pod adresem:
+
+```text
+http://localhost:4000
+```
+
+Obecna konfiguracja serwera korzysta ze stałego portu `4000`.
+
+### Frontend
+
+W drugim terminalu:
+
+```powershell
+cd frontend
+npm install
+npm install vite
+npm run dev
+```
+
+Vite wyświetli adres lokalny, zazwyczaj:
+
+```text
+http://localhost:5173
+```
+
+Adres API frontend bierze ze zmiennej `VITE_API_URL` (domyślnie `http://localhost:4000`).
+
+## Struktura backendu
+
+Kod w `backend/server/` jest podzielony tak, że jedna funkcjonalność to jeden plik:
+
+```
+backend/server/
+├── index.js              # start serwera: middleware i podpięcie tras
+├── config.js             # wczytanie .env, stałe (cookie, tryb produkcyjny)
+├── db.js                 # połączenie z bazą (Sequelize)
+├── models/               # po jednym pliku na tabelę
+│   ├── Item.js, ItemStatus.js, Location.js
+│   ├── User.js, UserRole.js, Session.js
+│   └── index.js          # powiązania między modelami (belongsTo)
+├── middleware/
+│   └── auth.js           # requireAuth, onlyAdmin, adminOrManager, canLogIn
+├── routes/               # po jednym pliku na grupę endpointów
+│   ├── auth.js           # /api/auth (login, me, logout)
+│   ├── users.js          # /api/admin (użytkownicy i role)
+│   ├── items.js          # /api/items (CRUD sprzętu, szczegóły, przenoszenie)
+│   └── locations.js      # /api/locations
+└── utils/
+    ├── validation.js     # walidacja e-maila, ID i danych sprzętu
+    ├── session.js        # tworzenie sesji i obsługa ciasteczka
+    └── loginLimit.js     # limit prób logowania
+```
+
+## Logowanie i role
+
+Aby korzystać z aplikacji, trzeba się zalogować (po adresie email i haśle). Logować się mogą tylko `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
+
+| Rola | `id` roli | Uprawnienia |
+| --- | --- | --- |
+| `manager` (moderator) | `2` | Podgląd listy sprzętu oraz przenoszenie sprzętu (zmiana lokalizacji) |
+| `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu oraz zarządzanie kontami i rolami |
+| `user` | `3` | Brak możliwości logowania (konto z tą rolą dostaje `403`) |
+
+W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj”, a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
+
+Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe ze wspólnym hasłem `haslo123`, przeznaczone tylko do rozwoju:
+
+| Email | Rola |
+| --- | --- |
+| `admin@example.com` | `admin` |
+| `manager@example.com` | `manager` |
+| `user@example.com` | `user` |
+
+## API
 
 Base URL:
 
+```text
 http://localhost:4000
+```
 
+### Status API
 
-==================================================
+```http
+GET /api/status
+```
 
-1. TECHNOLOGIES
+Dostęp: bez logowania. Odpowiedź:
 
-Frontend:
-React
-
-Backend:
-Express.js
-
-Database:
-MySQL
-
-==================================================
-
-2. GETTING STARTED
-
-Install dependencies:
-
-npm install
-
-
-Start the API:
-
-node index.js
-
-
-The server will start on:
-
-http://localhost:4000
-
-
-==================================================
-
-3. AUTHENTICATION
-
-Authentication is not required in the current version.
-
-The API does not use API keys, tokens, or user accounts.
-
-==================================================
-
-4. DATA MODEL
-
-The API works with inventory items.
-
-Example item:
-
+```json
 {
-  "id": 1,
-  "inventory_number": "INV-001",
-  "manufacturer": "Dell",
-  "model": "Latitude 5520",
-  "purchase_date": "2026-01-15",
-  "purchase_price": 3500.00,
-  "location_id": 1,
-  "status_id": 1,
-  "assigned_to": "Jan Kowalski"
+  "status": "ok",
+  "message": "API działa"
 }
+```
 
-1. id
+Pozostałe endpointy, poza logowaniem, wymagają zalogowania. Bez sesji zwracają `401 Unauthorized`.
 
-Unique identifier generated by the database.
+### Logowanie
 
-2. inventory_number
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
 
-Inventory number assigned to the item.
+Przykładowe żądanie:
 
-3. manufacturer
+```json
+{
+  "email": "admin@example.com",
+  "password": "haslo123"
+}
+```
 
-Manufacturer of the item.
+Poprawne logowanie ustawia ciasteczko sesji i zwraca użytkownika wraz z rolą:
 
-4. model
+```json
+{
+  "user": {
+    "id": 1,
+    "role": "admin"
+  }
+}
+```
 
-Model of the item.
+Możliwe błędy:
 
-5. purchase_date
+- `401 Unauthorized` — nieprawidłowy email lub hasło,
+- `403 Forbidden` — konto ma rolę `user` i nie może się logować,
+- `429 Too Many Requests` — zbyt wiele nieudanych prób logowania.
 
-Date when the item was purchased.
+### Sprawdzenie sesji
 
-6. purchase_price
+```http
+GET /api/auth/me
+```
 
-Purchase price of the item.
+Dostęp: zalogowani. Zwraca użytkownika w takim samym formacie jak logowanie. Bez sesji zwraca `401 Unauthorized`.
 
-7. location_id
+### Wylogowanie
 
-Identifier of the location where the item is stored.
+```http
+POST /api/auth/logout
+```
 
-8. status_id
+Kończy sesję i zwraca `204 No Content`.
 
-Identifier of the current status of the item.
+### Pobranie wszystkich elementów
 
-9. assigned_to
-
-Person assigned to the item.
-
-==================================================
-
-5. API REFERENCE
+```http
 GET /api/items
+```
 
-Returns all items stored in the inventory.
+Dostęp: każdy zalogowany użytkownik.
 
-REQUEST
-GET /api/items
+### Pobranie elementów wraz ze szczegółami
 
+```http
+GET /api/items/details
+```
 
-No parameters are required.
+Dostęp: każdy zalogowany użytkownik. Oprócz pól sprzętu (łącznie z `location_id`, `status_id` i `assigned_to`) zwraca obiekty `status`, `location` i `assignedUser` (lub `null`, gdy brak):
 
-EXAMPLE
-const response = await fetch('http://localhost:4000/api/items')
-const items = await response.json()
-
-console.log(items)
-
-RESPONSE
-
-Status: 200 OK
-
+```json
 [
   {
     "id": 1,
-    "inventory_number": "INV-001",
+    "inventory_number": "INV-2024-001",
     "manufacturer": "Dell",
-    "model": "Latitude 5520"
-  },
-  {
-    "id": 2,
-    "inventory_number": "INV-002",
-    "manufacturer": "Lenovo",
-    "model": "ThinkPad T14"
+    "model": "Latitude 5540",
+    "purchase_date": "2024-03-12",
+    "purchase_price": "4899.00",
+    "location_id": 1,
+    "status_id": 1,
+    "assigned_to": 3,
+    "status": { "id": 1, "name": "active" },
+    "location": { "id": 1, "building": "Budynek A", "room": "101" },
+    "assignedUser": { "id": 3, "email": "user@example.com", "role_id": 3, "UserRole": { "role": "user" } }
   }
 ]
+```
 
-ERROR
+### Pobranie lokalizacji
 
-Status: 500 Internal Server Error
+```http
+GET /api/locations
+```
 
-{
-  "error": "Database error message"
-}
+Dostęp: każdy zalogowany użytkownik. Zwraca listę lokalizacji:
 
+```json
+[
+  { "id": 1, "building": "Budynek A", "room": "101" }
+]
+```
+
+### Pobranie elementu po ID
+
+```http
 GET /api/items/:id
+```
 
-Returns one item using its ID.
+Dostęp: każdy zalogowany użytkownik.
 
-REQUEST
-GET /api/items/1
+Jeśli element nie istnieje:
 
-
-The id in the URL specifies which item should be returned.
-
-EXAMPLE
-const response = await fetch('http://localhost:4000/api/items/1')
-const item = await response.json()
-
-console.log(item)
-
-RESPONSE
-
-Status: 200 OK
-
-{
-  "id": 1,
-  "inventory_number": "INV-001",
-  "manufacturer": "Dell",
-  "model": "Latitude 5520"
-}
-
-ITEM NOT FOUND
-
-If the item does not exist, the current implementation returns:
-
-Status: 404 Not Found
-
+```json
 {
   "error": "Item not found"
 }
+```
 
-ERROR
+### Dodanie elementu
 
-Status: 500 Internal Server Error
-
-{
-  "error": "Database error message"
-}
-
-POST /api/items
-
-Creates a new item in the inventory.
-
-REQUEST
+```http
 POST /api/items
 Content-Type: application/json
+```
 
+Dostęp: tylko `admin`.
 
-Request body:
+Przykładowe żądanie:
 
+```json
 {
-  "inventory_number": "INV-003",
-  "manufacturer": "HP",
-  "model": "ProBook 450"
-}
-
-
-The request contains:
-
-inventory_number
-
-Inventory number of the item.
-
-manufacturer
-
-Manufacturer of the item.
-
-model
-
-Model of the item.
-
-EXAMPLE
-const response = await fetch('http://localhost:4000/api/items', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    inventory_number: 'INV-003',
-    manufacturer: 'HP',
-    model: 'ProBook 450'
-  })
-})
-
-const result = await response.json()
-
-console.log(result)
-
-RESPONSE
-
-Status: 200 OK
-
-The API returns the ID of the newly created item:
-
-{
-  "id": 3
-}
-
-ERROR
-
-Status: 500 Internal Server Error
-
-{
-  "error": "Database error message"
-}
-
-PUT /api/items/:id
-
-Updates an existing inventory item.
-
-The endpoint updates the following fields:
-
-inventory_number
-
-manufacturer
-
-model
-
-purchase_date
-
-purchase_price
-
-location_id
-
-status_id
-
-assigned_to
-
-REQUEST
-PUT /api/items/1
-Content-Type: application/json
-
-
-Request body:
-
-{
-  "inventory_number": "INV-001",
+  "inventory_number": "INV-2026-003",
   "manufacturer": "Dell",
-  "model": "Latitude 5520",
+  "model": "Latitude 5540",
   "purchase_date": "2026-01-15",
-  "purchase_price": 3500.00,
+  "purchase_price": 4899.00,
+  "location_id": 1,
+  "status_id": 1,
+  "assigned_to": 3
+}
+```
+
+`inventory_number` jest wymagany. Pozostałe pola są opcjonalne i domyślnie otrzymują wartość `null`; `status_id` domyślnie przyjmuje `1`.
+
+Poprawne utworzenie elementu zwraca `201 Created` oraz zapisany rekord:
+
+```json
+{
+  "id": 6,
+  "inventory_number": "INV-2026-003",
+  "manufacturer": "Dell",
+  "model": "Latitude 5540",
+  "purchase_date": "2026-01-15",
+  "purchase_price": 4899,
+  "location_id": 1,
+  "status_id": 1,
+  "assigned_to": 3
+}
+```
+
+Możliwe błędy:
+
+- `400 Bad Request` — brak lub nieprawidłowy numer inwentarzowy albo nieprawidłowa cena,
+- `409 Conflict` — numer inwentarzowy już istnieje,
+- `500 Internal Server Error` — błąd serwera lub bazy danych (także wtedy, gdy `status_id` lub `location_id` wskazuje nieistniejący rekord).
+
+### Aktualizacja elementu
+
+```http
+PATCH /api/items/:id
+Content-Type: application/json
+```
+
+Dostęp: tylko `admin`.
+
+Endpoint wymaga pełnego zestawu pól (jak przy dodawaniu, w tym `inventory_number`). Częściowa aktualizacja nie jest obsługiwana i zwraca `400`.
+
+Przykład:
+
+```json
+{
+  "inventory_number": "INV-2026-003",
+  "manufacturer": "Dell",
+  "model": "Latitude 5540",
+  "purchase_date": "2026-01-15",
+  "purchase_price": 4500.00,
   "location_id": 2,
   "status_id": 1,
-  "assigned_to": "Jan Kowalski"
+  "assigned_to": 3
 }
+```
 
-EXAMPLE
-const response = await fetch('http://localhost:4000/api/items/1', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    inventory_number: 'INV-001',
-    manufacturer: 'Dell',
-    model: 'Latitude 5520',
-    purchase_date: '2026-01-15',
-    purchase_price: 3500.00,
-    location_id: 2,
-    status_id: 1,
-    assigned_to: 'Jan Kowalski'
-  })
-})
+Endpoint obsługuje pola:
 
-const result = await response.json()
+```text
+inventory_number
+manufacturer
+model
+purchase_date
+purchase_price
+location_id
+status_id
+assigned_to
+```
 
-console.log(result)
+Odpowiedź zawiera komunikat i zaktualizowany rekord:
 
-RESPONSE
-
-Status: 200 OK
-
+```json
 {
-  "message": "Item updated"
+  "message": "Item updated",
+  "item": {
+    "id": 6,
+    "inventory_number": "INV-2026-003",
+    "manufacturer": "Dell",
+    "model": "Latitude 5540",
+    "purchase_date": "2026-01-15",
+    "purchase_price": 4500,
+    "location_id": 2,
+    "status_id": 1,
+    "assigned_to": 3
+  }
 }
+```
 
-ITEM NOT FOUND
+Możliwe błędy:
 
-If the item does not exist:
+- `400 Bad Request` — nieprawidłowe dane, w tym brak numeru inwentarzowego,
+- `404 Not Found` — element nie istnieje,
+- `409 Conflict` — numer inwentarzowy już istnieje.
 
-Status: 404 Not Found
+### Usunięcie elementu
 
-{
-  "error": "Item not found"
-}
-
-ERROR
-
-Status: 500 Internal Server Error
-
-{
-  "error": "Database error message"
-}
-
+```http
 DELETE /api/items/:id
+```
 
-Deletes an existing item from the inventory.
+Dostęp: tylko `admin`.
 
-REQUEST
-DELETE /api/items/1
+Odpowiedź:
 
-
-The id in the URL specifies which item should be deleted.
-
-EXAMPLE
-const response = await fetch('http://localhost:4000/api/items/1', {
-  method: 'DELETE'
-})
-
-const result = await response.json()
-
-console.log(result)
-
-RESPONSE
-
-Status: 200 OK
-
+```json
 {
   "message": "Item deleted"
 }
+```
 
-ITEM NOT FOUND
+### Przeniesienie elementu
 
-If the item does not exist:
+```http
+PATCH /api/items/:id/location
+Content-Type: application/json
+```
 
-Status: 404 Not Found
+Dostęp: `admin` oraz `manager`.
 
+Przykład:
+
+```json
 {
-  "error": "Item not found"
+  "location_id": 2
 }
+```
 
-ERROR
+Odpowiedź:
 
-Status: 500 Internal Server Error
-
+```json
 {
-  "error": "Database error message"
+  "message": "Item moved"
 }
+```
 
+`location_id` musi wskazywać istniejącą lokalizację, w przeciwnym razie serwer zwróci `500`.
 
-==================================================
+### Lista użytkowników
 
-6. ERROR HANDLING
+```http
+GET /api/admin/users
+```
 
-The API currently handles errors that occur during database operations.
+Dostęp: tylko `admin`. Odpowiedź:
 
-When a database error occurs, the server returns:
+```json
+[
+  { "id": 1, "email": "admin@example.com", "roleId": 1, "role": "admin" }
+]
+```
 
-500 Internal Server Error
+### Lista ról
 
-with the following JSON:
+```http
+GET /api/admin/roles
+```
 
+Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom:
+
+```json
+[
+  { "id": 1, "role": "admin" },
+  { "id": 2, "role": "manager" },
+  { "id": 3, "role": "user" }
+]
+```
+
+### Dodanie użytkownika
+
+```http
+POST /api/admin/users
+Content-Type: application/json
+```
+
+Dostęp: tylko `admin`. To jedyny sposób zakładania kont.
+
+Przykładowe żądanie:
+
+```json
 {
-  "error": "Database error message"
+  "email": "nowy@example.com",
+  "password": "dlugiehaslo12345",
+  "roleId": 2
 }
+```
 
+Hasło musi mieć od 12 do 128 znaków. Poprawne utworzenie zwraca `201 Created` oraz użytkownika:
 
-The API also returns 404 Not Found when an operation references an item that does not exist.
-
-For example:
-
+```json
 {
-  "error": "Item not found"
+  "id": 4,
+  "email": "nowy@example.com",
+  "roleId": 2,
+  "role": "manager"
 }
+```
 
+Możliwe błędy:
 
-The current implementation does not provide separate validation for invalid input data.
+- `400 Bad Request` — nieprawidłowy email, hasło lub rola,
+- `409 Conflict` — adres email jest już zajęty.
 
-==================================================
+### Zmiana roli użytkownika
 
-7. RELEASE NOTES
-VERSION 0.0.2
+```http
+PATCH /api/admin/users/:id
+Content-Type: application/json
+```
 
-Updated version of the Inventory API.
+Dostęp: tylko `admin`.
 
-Added:
+Przykład:
 
-GET /api/items
-
-GET /api/items/:id
-
-POST /api/items
-
-PUT /api/items/:id
-
-DELETE /api/items/:id
-
-MySQL database connection
-
-JSON request and response handling
-
-CORS support
-
-Basic database error handling
-
-404 Not Found handling for missing items
-
-Known limitations:
-
-No authentication
-
-No input validation
-
-No PATCH endpoint
-
-No separate validation error responses
-
-API exposes database error messages directly
-
-==================================================
-
-8. AVAILABLE ENDPOINTS
-GET /api/items
-
-Returns all inventory items.
-
-GET /api/items/:id
-
-Returns one inventory item.
-
-POST /api/items
-
-Creates a new inventory item.
-
-PUT /api/items/:id
-
-Updates an existing inventory item.
-
-DELETE /api/items/:id
-
-Deletes an existing inventory item.
-
-==================================================
-
-9. HTTP STATUS CODES
-
-The API currently uses the following HTTP status codes:
-
-200 OK
-
-The request was successful.
-
-Used by:
-
-GET /api/items
-
-GET /api/items/:id
-
-POST /api/items
-
-PUT /api/items/:id
-
-DELETE /api/items/:id
-
-404 Not Found
-
-The requested item does not exist.
-
+```json
 {
-  "error": "Item not found"
+  "roleId": 3
 }
+```
 
-500 Internal Server Error
+Odpowiedź:
 
-A database or server error occurred.
-
+```json
 {
-  "error": "Database error message"
+  "message": "Rola została zmieniona."
 }
+```
 
+Admin nie może odebrać sobie roli `admin`, a system musi mieć co najmniej jednego admina (w obu przypadkach `400 Bad Request`). Użytkownik, któremu zmieniono rolę na `user`, traci aktywną sesję.
 
-==================================================
+### Usunięcie użytkownika
 
-10. TUTORIAL
+```http
+DELETE /api/admin/users/:id
+```
 
-This example shows how to add an item, retrieve it, update it, and finally delete it.
+Dostęp: tylko `admin`. Poprawne usunięcie zwraca `204 No Content`. Admin nie może usunąć własnego konta ani ostatniego admina (`400 Bad Request`), a nieistniejący użytkownik daje `404 Not Found`.
 
-STEP 1 — START THE SERVER
+## Model danych
 
-Run:
+Główna tabela `item` zawiera:
 
-node index.js
+| Pole | Typ | Opis |
+| --- | --- | --- |
+| `id` | `INT` | Klucz główny |
+| `inventory_number` | `VARCHAR(100)` | Unikalny numer inwentarzowy |
+| `manufacturer` | `VARCHAR(100)` | Producent |
+| `model` | `VARCHAR(100)` | Model |
+| `purchase_date` | `DATE` | Data zakupu |
+| `purchase_price` | `DECIMAL(10,2)` | Cena zakupu |
+| `location_id` | `INT` | Odwołanie do `location` |
+| `status_id` | `INT` | Odwołanie do `item_status` |
+| `assigned_to` | `INT` | Odwołanie do `user` |
 
+W bazie znajdują się również tabele:
 
-The API will be available at:
+- `user_role`,
+- `user` (z unikalnym adresem `email`),
+- `auth_session` (aktywne sesje logowania),
+- `item_status`,
+- `location`,
+- `audit_action`,
+- `audit_log`.
 
-http://localhost:4000
+## Statusy HTTP
 
-STEP 2 — GET THE CURRENT INVENTORY
-
-Send a GET request:
-
-const response = await fetch('http://localhost:4000/api/items')
-const items = await response.json()
-
-console.log(items)
-
-
-The API returns all items currently stored in the database.
-
-STEP 3 — ADD A NEW ITEM
-
-Send a POST request:
-
-const response = await fetch('http://localhost:4000/api/items', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    inventory_number: 'INV-100',
-    manufacturer: 'Lenovo',
-    model: 'ThinkPad T14'
-  })
-})
-
-const result = await response.json()
-
-console.log(result)
-
-
-The API returns the ID of the new item:
-
-{
-  "id": 100
-}
-
-STEP 4 — GET THE NEW ITEM
-
-Use the returned ID:
-
-const response = await fetch('http://localhost:4000/api/items/100')
-const item = await response.json()
-
-console.log(item)
-
-
-The API returns:
-
-{
-  "id": 100,
-  "inventory_number": "INV-100",
-  "manufacturer": "Lenovo",
-  "model": "ThinkPad T14"
-}
-
-STEP 5 — UPDATE THE ITEM
-
-Send a PUT request:
-
-const response = await fetch('http://localhost:4000/api/items/100', {
-  method: 'PUT',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    inventory_number: 'INV-100',
-    manufacturer: 'Lenovo',
-    model: 'ThinkPad T14',
-    purchase_date: '2026-09-28',
-    purchase_price: 4200.00,
-    location_id: 1,
-    status_id: 1,
-    assigned_to: 'Jan Kowalski'
-  })
-})
-
-const result = await response.json()
-
-console.log(result)
-
-
-The API returns:
-
-{
-  "message": "Item updated"
-}
-
-STEP 6 — DELETE THE ITEM
-
-Send a DELETE request:
-
-const response = await fetch('http://localhost:4000/api/items/100', {
-  method: 'DELETE'
-})
-
-const result = await response.json()
-
-console.log(result)
-
-
-The API returns:
-
-{
-  "message": "Item deleted"
-}
-
-
-After deletion, trying to retrieve the same item will return:
-
-Status: 404 Not Found
-
-{
-  "error": "Item not found"
-}
-
-
-==================================================
-
-11. ENDPOINT SUMMARY
-Method	Endpoint	Description
-
-GET	/api/items	Returns all items
-
-GET	/api/items/:id	Returns one item
-
-POST	/api/items	Creates an item
-
-PUT	/api/items/:id	Updates an item
-
-DELETE	/api/items/:id	Deletes an item
-
-==================================================
-
-12. SERVER
-
-The Express server listens on port 4000.
-
-app.listen(4000, () => {
-  console.log('ale mi dryga api dziala oh ahhhh oh ahhhh http://localhost:4000')
-})
+| Status | Znaczenie |
+| --- | --- |
+| `200` | Żądanie wykonane poprawnie |
+| `201` | Rekord utworzony |
+| `204` | Operacja wykonana, brak treści w odpowiedzi |
+| `400` | Nieprawidłowe dane wejściowe |
+| `401` | Wymagane logowanie |
+| `403` | Brak uprawnień (rola nie pozwala na tę operację) |
+| `404` | Element nie istnieje |
+| `409` | Konflikt unikalnego numeru inwentarzowego |
+| `429` | Zbyt wiele nieudanych prób logowania |
+| `500` | Błąd serwera lub bazy danych |
