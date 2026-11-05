@@ -5,13 +5,13 @@ Prosta aplikacja do ewidencji sprzętu.
 ## Specyfikacja
 
 - Frontend: React + Vite
-- Backend: Node.js + Express, MySQL, XAMPP
+- Backend: Node.js + Express, MySQL
 
 ## Wymagania
 
 - Node.js,
 - npm,
-- XAMPP.
+- Docker Desktop.
 
 ## Instalacja
 
@@ -27,17 +27,30 @@ npm install
 
 ## Konfiguracja bazy danych
 
-1. Uruchom moduł MySQL w XAMPP.
-2. Zaimportuj plik [`backend/inventory_db.sql`](./backend/inventory_db.sql) w phpMyAdmin
-3. Utwórz plik `backend/server/.env`:
+1. Uruchom Docker Desktop.
+2. Utwórz plik `backend/server/.env` na podstawie [`backend/server/.env.example`](./backend/server/.env.example):
 
    ```env
    DB_NAME=inwentarz
    DB_USER=root
-   DB_PASSWORD=
+    DB_PASSWORD=root
    DB_HOST=127.0.0.1
    FRONTEND_ORIGIN=http://localhost:5173
    ```
+
+3. Uruchom bazę z katalogu głównego projektu:
+
+  ```powershell
+  npm run db:up
+  ```
+
+  Przy pierwszym uruchomieniu Docker automatycznie wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w Docker volume i nie są importowane ponownie przy zwykłym restarcie.
+
+  Aby całkowicie odtworzyć bazę razem z usunięciem danych, użyj:
+
+  ```powershell
+  npm run db:reset
+  ```
 
    `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie (domyślnie `http://localhost:5173`).
 
@@ -46,12 +59,21 @@ npm install
 
 ## Uruchomienie
 
+### Cała aplikacja
+
+Z katalogu głównego projektu:
+
+```powershell
+npm run dev
+```
+
+Polecenie uruchamia backend i frontend jednocześnie. Wcześniej uruchom bazę poleceniem `npm run db:up`.
+
 ### Backend
 
 ```powershell
 cd backend/server
 npm install
-npm install sequelize
 npm run dev
 ```
 
@@ -70,7 +92,6 @@ W drugim terminalu:
 ```powershell
 cd frontend
 npm install
-npm install vite
 npm run dev
 ```
 
