@@ -6,7 +6,7 @@ import { validateItem } from '../utils/validation.js'
 const router = Router()
 
 // UWAGA: '/details' musi być przed '/:id', inaczej "details" zostanie potraktowane jako id
-router.get('/details', requireAuth, async (req, res) => {
+router.get('/details', async (req, res) => {
   try {
     const items = await Item.findAll({
       include: [
@@ -27,7 +27,7 @@ router.get('/details', requireAuth, async (req, res) => {
   }
 })
 
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
@@ -40,7 +40,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 })
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const items = await Item.findAll()
     res.status(200).json(items)

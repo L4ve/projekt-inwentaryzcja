@@ -37,8 +37,15 @@ function App() {
     return <div className="auth-loading">Sprawdzanie sesji...</div>;
   }
 
-  if (!user) {
-    return <Login apiUrl={API_URL} onLogin={setUser} />;
+  const role = user?.role || "user";
+
+  function handleLogin(loggedUser) {
+    setUser(loggedUser);
+    setActivePage("equipment");
+  }
+
+  if (!user && activePage === "login") {
+    return <Login apiUrl={API_URL} onLogin={handleLogin} onBack={() => setActivePage("equipment")} />;
   }
 
   return (
@@ -48,12 +55,18 @@ function App() {
           📦 Ewidencja <span>Sprzętu</span>
         </div>
         <div className="session-actions">
-          <span className="role-badge">Rola: {user.role.toUpperCase()}</span>
-          <button className="logout-button" type="button" onClick={handleLogout}>Wyloguj</button>
+          {user ? (
+            <>
+              <span className="role-badge">Rola: {role.toUpperCase()}</span>
+              <button className="logout-button" type="button" onClick={handleLogout}>Wyloguj</button>
+            </>
+          ) : (
+            <button className="logout-button" type="button" onClick={() => setActivePage("login")}>Panel logowania</button>
+          )}
         </div>
       </header>
       <div className="layout">
-        <Sidebar setActivePage={setActivePage} isAdmin={user.role === "admin"} />
+        <Sidebar setActivePage={setActivePage} isAdmin={role === "admin"} />
         <main className="main"> {activePage === "equipment" && 
         ( <>
               <div className="heading-row">
@@ -81,7 +94,7 @@ function App() {
                 </div>
               </div>
               <Items
-                role={user.role}
+                role={role}
                 search={search}
                 statusFilter={status}
                 assignedFilter={assigned}
@@ -95,7 +108,7 @@ function App() {
           )}
 
           {activePage === "access" && (
-            user.role === "admin" ? <AccessPage apiUrl={API_URL} /> : <h1>Brak uprawnień</h1>
+            role === "admin" ? <AccessPage apiUrl={API_URL} /> : <h1>Brak uprawnień</h1>
           )}
         </main>
       </div>
