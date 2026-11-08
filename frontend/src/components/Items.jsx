@@ -60,7 +60,6 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
     } catch {
       setLocations([])
     }
-
   }
 
   async function loadUsers() {
@@ -87,6 +86,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   }, [items, onAssignedUsersChange])
 
   function openForm() {
+    setEditingItem(null)
     setShowForm(true)
   }
 
@@ -133,9 +133,24 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
     addButton = <button className="add-button" type="button" onClick={openForm}>Dodaj sprzęt</button>
   }
 
+  // Zmieniono: formularz renderuje się jako elegancki box na środku ekranu (modal)
   let form = null
   if (showForm) {
-    form = <ItemForm key={editingItem?.id || 'new'} item={editingItem} locations={locations} users={users} onSaved={handleSaved} onCancel={closeForm} />
+    form = (
+      <div className="modal-overlay">
+        <div className="modal-box">
+          <h2>{editingItem ? `Edycja: ${editingItem.manufacturer} ${editingItem.model}` : 'Dodaj nowy sprzęt'}</h2>
+          <ItemForm 
+            key={editingItem?.id || 'new'} 
+            item={editingItem} 
+            locations={locations} 
+            users={users} 
+            onSaved={handleSaved} 
+            onCancel={closeForm} 
+          />
+        </div>
+      </div>
+    )
   }
 
   let moveHeader = null

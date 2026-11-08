@@ -618,3 +618,122 @@ tbody tr:last-child td {
   background: var(--color-primary);
   color: white;
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeInOverlay 0.2s ease-out;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 500px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.2);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; 
+  animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-box h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.modal-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-box label,
+.modal-box .form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 2px;
+  display: block;
+}
+
+.modal-box input,
+.modal-box select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 13px;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.modal-box input:focus,
+.modal-box select:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.modal-box button[type="submit"],
+.modal-box .primary-button {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 8px;
+  height: 38px;
+  border: none;
+  cursor: pointer;
+  flex: 1;
+  transition: opacity 0.2s;
+}
+
+.modal-box button[type="submit"]:hover,
+.modal-box .primary-button:hover {
+  opacity: 0.9;
+}
+
+.modal-box button[type="button"]:not(.primary-button),
+.modal-box .danger-button {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  border-radius: 8px;
+  height: 38px;
+  border: 1.5px solid #cbd5e1;
+  cursor: pointer;
+  flex: 1;
+  transition: background 0.2s;
+}
+
+.modal-box button[type="button"]:not(.primary-button):hover,
+.modal-box .danger-button:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
