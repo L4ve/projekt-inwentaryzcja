@@ -5,7 +5,7 @@ import Login from "./components/Login";
 import Items from "./components/Items";
 import AccessPage from "./pages/accessPage";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "" : "http://localhost:4000");
 
 function App() {
   const [search, setSearch] = useState("");
