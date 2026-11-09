@@ -20,7 +20,7 @@ export function validateItem(data) {
   if (data.purchase_price !== null && data.purchase_price !== undefined) {
     const purchasePrice = Number(data.purchase_price)
     if (!Number.isFinite(purchasePrice) || purchasePrice < 0)
-      return 'Cena zakupu nie może być cyfrą negatywną.'
+      return 'Cena zakupu nie może być cyfrą ujemną.'
   }
 
   return null
