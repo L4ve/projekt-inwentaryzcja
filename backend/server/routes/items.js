@@ -31,7 +31,7 @@ router.get('/:id', async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({ error: 'Przedmiot nie znaleziony' })
+      return res.status(404).json({ error: 'Przedmiot nie znaleziony.' })
     }
 
     res.status(200).json(item)
@@ -81,7 +81,7 @@ router.post('/', requireAuth, onlyAdmin, async (req, res) => {
     res.status(201).json(item)
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({ error: 'Numer przedmiotu już istnieje' })
+      return res.status(409).json({ error: 'Numer przedmiotu już istnieje.' })
     }
 
     res.status(500).json({ error: err.message })
@@ -92,7 +92,7 @@ router.patch('/:id', requireAuth, onlyAdmin, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({ error: 'Przedmiot nie znaleziony' })
+      return res.status(404).json({ error: 'Przedmiot nie znaleziony.' })
     }
 
     const inventory_number = typeof req.body.inventory_number === 'string'
@@ -136,10 +136,10 @@ router.patch('/:id', requireAuth, onlyAdmin, async (req, res) => {
       assigned_to,
     })
 
-    res.status(200).json({ message: 'Przedmiot zaktualizowany', item })
+    res.status(200).json({ message: 'Przedmiot zaktualizowany.', item })
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(409).json({ error: 'Numer przedmiotu już istnieje' })
+      return res.status(409).json({ error: 'Numer przedmiotu już istnieje.' })
     }
     res.status(500).json({ error: err.message })
   }
@@ -149,11 +149,11 @@ router.delete('/:id', requireAuth, onlyAdmin, async (req, res) => {
   try {
     const item = await Item.findByPk(req.params.id)
     if (!item) {
-      return res.status(404).json({ error: 'Przedmiot nie znaleziony' })
+      return res.status(404).json({ error: 'Przedmiot nie znaleziony.' })
     }
 
     await item.destroy()
-    res.status(200).json({ message: 'Przedmiot usunięty' })
+    res.status(200).json({ message: 'Przedmiot usunięty.' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -162,7 +162,7 @@ router.delete('/:id', requireAuth, onlyAdmin, async (req, res) => {
 router.patch('/:id/location', requireAuth, adminOrManager, async (req, res) => {
   try {
     await Item.update({ location_id: req.body.location_id }, { where: { id: req.params.id } })
-    res.json({ message: 'Przedmiot przeniesiony' })
+    res.json({ message: 'Przedmiot przeniesiony.' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
