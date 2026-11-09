@@ -10,6 +10,9 @@ import itemsRoutes from './routes/items.js'
 import locationsRoutes from './routes/locations.js'
 
 const app = express()
+const PORT = process.env.PORT || 4000
+
+app.set('trust proxy', 1)
 
 app.use(helmet())
 app.use(cors({
@@ -36,10 +39,11 @@ startServer()
 async function startServer() {
   try {
     await sequelize.authenticate()
-    app.listen(4000, () => {
-      console.log('API działa na http://localhost:4000')
+    app.listen(PORT, () => {
+      console.log(`API działa na porcie ${PORT}`)
     })
   } catch (err) {
     console.error('Błąd połączenia z bazą danych:', err)
+    process.exit(1)
   }
 }

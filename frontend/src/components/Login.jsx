@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function Login({ apiUrl, onLogin }) {
+function Login({ apiUrl, onLogin, onBack }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -46,8 +46,8 @@ function Login({ apiUrl, onLogin }) {
       <form className="login-card" onSubmit={handleSubmit}>
         <div className="login-brand">📦 Ewidencja <span>Sprzętu</span></div>
         <div className="login-heading">
-          <h1>Zaloguj się</h1>
-          <p>Wprowadź dane, aby uzyskać dostęp do systemu.</p>
+          <h1>Panel logowania</h1>
+          <p>Logowanie dla moderatorów i administratorów.</p>
         </div>
         <label htmlFor="user-email">Adres email</label>
         <input id="user-email" type="email" maxLength="254" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required/>
@@ -57,6 +57,7 @@ function Login({ apiUrl, onLogin }) {
         <button className="login-button" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Logowanie..." : "Zaloguj się"}
         </button>
+        {onBack && <button className="login-switch-button" type="button" onClick={onBack}>Wróć do ewidencji</button>}
       </form>
     </main>
   );
