@@ -73,3 +73,7 @@ export function createItem(item) {
 export function updateItem(id, item) {
   return send("PATCH", `/api/items/${id}`, item);
 }
+
+export function deleteItem(id) {
+  return send("DELETE", `/api/items/${id}`);
+}
