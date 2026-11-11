@@ -2,6 +2,8 @@ import { createHash, randomBytes } from 'node:crypto'
 import { authCookieName, isProduction } from '../config.js'
 import { Session } from '../models/index.js'
 
+const cookieAttrs = isProduction ? 'SameSite=None; Secure' : 'SameSite=Lax'
+
 export function hashToken(token) {
   return createHash('sha256').update(token).digest('hex')
 }
@@ -20,10 +22,10 @@ export async function createSession(res, userId) {
     expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000),
   })
 
-  const cookie = `${authCookieName}=${sessionToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${isProduction ? '; Secure' : ''}`
+  const cookie = `${authCookieName}=${sessionToken}; HttpOnly; ${cookieAttrs}; Path=/; Max-Age=28800`
   res.setHeader('Set-Cookie', cookie)
 }
 
 export function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${authCookieName}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${isProduction ? '; Secure' : ''}`)
+  res.setHeader('Set-Cookie', `${authCookieName}=; HttpOnly; ${cookieAttrs}; Path=/; Max-Age=0`)
 }

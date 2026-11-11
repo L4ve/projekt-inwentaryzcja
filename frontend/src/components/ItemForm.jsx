@@ -9,6 +9,30 @@ const statuses = [
   ["5", "Zaginiony"],
 ];
 
+// Zwraca tablicę komunikatów błędów. Pusta tablica = dane poprawne.
+// Eksportowana osobno, żeby dało się ją testować jednostkowo.
+export function validateItem(data) {
+  const errors = [];
+
+  const inventoryNumber = typeof data?.inventory_number === "string" ? data.inventory_number.trim() : "";
+  if (inventoryNumber === "") {
+    errors.push("Numer inwentarzowy jest wymagany.");
+  } else if (inventoryNumber.startsWith("-")) {
+    errors.push("Numer inwentarzowy nie może zaczynać się od myślnika.");
+  }
+
+  const price = data?.purchase_price;
+  if (price !== null && price !== undefined) {
+    if (typeof price !== "number" || Number.isNaN(price)) {
+      errors.push("Cena musi być liczbą.");
+    } else if (price < 0) {
+      errors.push("Cena nie może być ujemna.");
+    }
+  }
+
+  return errors;
+}
+
 function ItemForm({ item, locations, users, onSaved, onCancel }) {
   const [inventoryNumber, setInventoryNumber] = useState(item?.inventory_number || "");
   const [manufacturer, setManufacturer] = useState(item?.manufacturer || "");
@@ -34,18 +58,26 @@ function ItemForm({ item, locations, users, onSaved, onCancel }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    setError("");
+
+    const data = {
+      inventory_number: inventoryNumber.trim(),
+      manufacturer: manufacturer.trim() || null,
+      model: model.trim() || null,
+      purchase_date: purchaseDate || null,
+      purchase_price: purchasePrice === "" ? null : Number(purchasePrice),
+      location_id: locationId === "" ? null : Number(locationId),
+      status_id: Number(statusId),
+      assigned_to: assignedTo === "" ? null : Number(assignedTo),
+    };
+
+    const validationErrors = validateItem(data);
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(" "));
+      return;
+    }
 
     try {
-      const data = {
-        inventory_number: inventoryNumber.trim(),
-        manufacturer: manufacturer.trim() || null,
-        model: model.trim() || null,
-        purchase_date: purchaseDate || null,
-        purchase_price: purchasePrice === "" ? null : Number(purchasePrice),
-        location_id: locationId === "" ? null : Number(locationId),
-        status_id: Number(statusId),
-        assigned_to: assignedTo === "" ? null : Number(assignedTo),
-      };
       if (item) {
         await updateItem(item.id, data);
       } else {

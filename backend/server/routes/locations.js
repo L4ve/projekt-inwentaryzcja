@@ -1,10 +1,9 @@
 import { Router } from 'express'
 import { Location } from '../models/index.js'
-import { requireAuth } from '../middleware/auth.js'
 
 const router = Router()
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const locations = await Location.findAll()
     res.json(locations)

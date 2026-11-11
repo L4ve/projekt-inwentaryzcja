@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "start": "node index.js",
     "dev": "node index.js"
   },
   "dependencies": {
@@ -15,5 +16,8 @@
     "helmet": "^8.3.0",
     "mysql2": "^3.11.5",
     "sequelize": "^6.37.8"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
