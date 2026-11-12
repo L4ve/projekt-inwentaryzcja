@@ -15,7 +15,7 @@ Prosta aplikacja do ewidencji sprzętu.
 
 ## Instalacja
 
-Zależności instaluje się osobno dla backendu i frontendu:
+Wymagany jest Node.js 20 lub nowszy, npm oraz Docker Desktop. Zależności instaluje się osobno dla backendu i frontendu:
 
 ```powershell
 cd backend/server
@@ -31,10 +31,11 @@ npm install
 2. Utwórz plik `backend/server/.env` na podstawie [`backend/server/.env.example`](./backend/server/.env.example):
 
    ```env
+  DB_HOST=127.0.0.1
+  DB_PORT=3306
    DB_NAME=inwentarz
    DB_USER=root
-    DB_PASSWORD=root
-   DB_HOST=127.0.0.1
+  DB_PASSWORD=root
    FRONTEND_ORIGIN=http://localhost:5173
    ```
 
@@ -44,7 +45,7 @@ npm install
   npm run db:up
   ```
 
-  Przy pierwszym uruchomieniu Docker automatycznie wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w Docker volume i nie są importowane ponownie przy zwykłym restarcie.
+  Skrypt uruchamia usługę MySQL z pliku [`docker-compose.yml`](./docker-compose.yml). Przy pierwszym utworzeniu wolumenu Docker wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w wolumenie i nie są importowane ponownie przy zwykłym restarcie.
 
   Aby całkowicie odtworzyć bazę razem z usunięciem danych, użyj:
 
@@ -52,29 +53,31 @@ npm install
   npm run db:reset
   ```
 
-   `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie (domyślnie `http://localhost:5173`).
-
-   Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
-
+  `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie. Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
 
 ## Uruchomienie
 
-### Cała aplikacja
+### Baza danych
 
 Z katalogu głównego projektu:
 
 ```powershell
-npm run dev
+npm run db:up
 ```
-
-Polecenie uruchamia backend i frontend jednocześnie. Wcześniej uruchom bazę poleceniem `npm run db:up`.
 
 ### Backend
 
+W osobnym terminalu:
+
 ```powershell
 cd backend/server
-npm install
 npm run dev
+```
+
+Można też uruchomić backend z katalogu głównego:
+
+```powershell
+npm run dev:backend
 ```
 
 API będzie dostępne pod adresem:
@@ -87,12 +90,17 @@ Obecna konfiguracja serwera korzysta ze stałego portu `4000`.
 
 ### Frontend
 
-W drugim terminalu:
+W kolejnym terminalu:
 
 ```powershell
 cd frontend
-npm install
 npm run dev
+```
+
+Można też uruchomić frontend z katalogu głównego:
+
+```powershell
+npm run dev:frontend
 ```
 
 Vite wyświetli adres lokalny, zazwyczaj:

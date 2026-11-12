@@ -1,0 +1,21 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: inventory-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: inwentarz
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - inventory_db_data:/var/lib/mysql
+      - ./backend/inventory_db.sql:/docker-entrypoint-initdb.d/01-inventory.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  inventory_db_data:
