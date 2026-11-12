@@ -601,6 +601,21 @@ tbody tr:last-child td {
   width: auto;
 }
 
+.main > .items.with-actions {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.main > .items.with-actions table {
+  min-width: 1080px;
+  table-layout: auto;
+}
+
+.main > .items.with-actions th,
+.main > .items.with-actions td {
+  white-space: nowrap;
+}
+
 .main > .items.with-actions th:last-child,
 .main > .items.with-actions td:last-child {
   width: 22%;
@@ -846,6 +861,10 @@ tbody tr:last-child td {
 
   .main > .items table {
     min-width: 700px;
+  }
+
+  .main > .items.with-actions table {
+    min-width: 980px;
   }
 
   th,
