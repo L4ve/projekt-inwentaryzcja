@@ -132,7 +132,8 @@ backend/server/
 │   ├── items.js          # /api/items (CRUD sprzętu, szczegóły, przenoszenie)
 │   └── locations.js      # /api/locations
 └── utils/
-    ├── validation.js     # walidacja e-maila, ID i danych sprzętu
+    ├── validation.js      # walidacja e-maila, ID i danych sprzętu
+    ├── validation.test.js # testy jednostkowe walidacji
     ├── session.js        # tworzenie sesji i obsługa ciasteczka
     └── loginLimit.js     # limit prób logowania
 ```
@@ -156,6 +157,16 @@ Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.
 | `admin@example.com` | `admin` |
 | `manager@example.com` | `manager` |
 | `user@example.com` | `user` |
+
+## Testy
+
+Z katalogu głównego projektu uruchom:
+
+```powershell
+npm test
+```
+
+Testy backendu korzystają z wbudowanego runnera Node.js.
 
 ## API
 

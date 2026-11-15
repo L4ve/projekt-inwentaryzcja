@@ -4,6 +4,7 @@
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d db",
+    "test": "npm --prefix backend/server test",
     "dev:backend": "npm --prefix backend/server run dev",
     "dev:frontend": "npm --prefix frontend run dev"
   },
