@@ -1,16 +1,45 @@
-function Sidebar({ setActivePage, isAdmin }) {
+import { useEffect, useRef } from "react";
+import { KeyIcon, ListIcon, TableIcon } from "./icons";
+
+function NavItem({ page, activePage, setActivePage, icon, children }) {
+  const isActive = activePage === page;
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (isActive) {
+      buttonRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }, [isActive]);
+
   return (
-    <aside className="sidebar">
-      <button className="nav-item" type="button" onClick={() => setActivePage("equipment")}>
-        <span>• Ewidencja Sprzętu</span>
-      </button>
-      <button className="nav-item" type="button" onClick={() => setActivePage("logs")}>
-        <span>• Logi</span>
-      </button>
-      {isAdmin && <button className="nav-item" type="button" onClick={() => setActivePage("access")}>
-        <span>• Zarządzanie Dostępem</span>
-      </button>}
-    </aside>
+    <button
+      ref={buttonRef}
+      className={isActive ? "nav-item active" : "nav-item"}
+      type="button"
+      aria-current={isActive ? "page" : undefined}
+      onClick={() => setActivePage(page)}
+    >
+      {icon}
+      <span>{children}</span>
+    </button>
+  );
+}
+
+function Sidebar({ activePage, setActivePage, isAdmin }) {
+  return (
+    <nav className="sidebar" aria-label="Nawigacja">
+      <NavItem page="equipment" activePage={activePage} setActivePage={setActivePage} icon={<TableIcon />}>
+        Ewidencja Sprzętu
+      </NavItem>
+      <NavItem page="logs" activePage={activePage} setActivePage={setActivePage} icon={<ListIcon />}>
+        Logi
+      </NavItem>
+      {isAdmin && (
+        <NavItem page="access" activePage={activePage} setActivePage={setActivePage} icon={<KeyIcon />}>
+          Zarządzanie Dostępem
+        </NavItem>
+      )}
+    </nav>
   );
 }
 

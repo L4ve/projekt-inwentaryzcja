@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { deleteItem, getItemsWithDetails, getLocations, getUsers, moveItem } from '../api/items'
 import ItemForm from './ItemForm'
+import { EditIcon, PlusIcon, TrashIcon } from './icons'
 
 const statusLabels = {
   active: { label: 'Aktywny', variant: 'active' },
@@ -30,7 +31,36 @@ function LocationSelect({ item, locations, onMove }) {
   )
 }
 
-function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChange }) {
+function Toolbar({ search, onSearchChange, statusFilter, onStatusFilterChange, assignedFilter, onAssignedFilterChange, assignedUsers, sortBy, onSortChange, children }) {
+  return (
+    <div className="toolbar">
+      <input className="search-field" type="text" aria-label="Szukaj" placeholder="Szukaj po nr inwentarzowym, marce, modelu." value={search} onChange={(e) => onSearchChange(e.target.value)}/>
+      <select aria-label="Status" value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)}>
+        <option value="Wszystkie">Status: Wszystkie</option>
+        <option value="active">Status: Aktywny</option>
+        <option value="in_repair">Status: W naprawie</option>
+        <option value="in_storage">Status: W magazynie</option>
+        <option value="retired">Status: Wycofany</option>
+        <option value="lost">Status: Zaginiony</option>
+      </select>
+      <select aria-label="Przypisany" value={assignedFilter} onChange={(e) => onAssignedFilterChange(e.target.value)}>
+        <option value="Wszyscy">Przypisany: Wszyscy</option>
+        <option value="Nikt">Przypisany: Nikt</option>
+        {assignedUsers.map((role) => (
+          <option key={role} value={role}>Przypisany: {role}</option>
+        ))}
+      </select>
+      <select className="sort-select" aria-label="Sortowanie" value={sortBy} onChange={(event) => onSortChange(event.target.value)}>
+        <option value="inventory_number">Sortuj: numer inwentarzowy</option>
+        <option value="manufacturer">Sortuj: producent</option>
+        <option value="model">Sortuj: model</option>
+      </select>
+      {children}
+    </div>
+  )
+}
+
+function Items({ role, search, onSearchChange, statusFilter, onStatusFilterChange, assignedFilter, onAssignedFilterChange, assignedUsers, onAssignedUsersChange }) {
   const [items, setItems] = useState([])
   const [locations, setLocations] = useState([])
   const [users, setUsers] = useState([])
@@ -134,12 +164,34 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
     }
   }
 
+  const toolbarProps = {
+    search,
+    onSearchChange,
+    statusFilter,
+    onStatusFilterChange,
+    assignedFilter,
+    onAssignedFilterChange,
+    assignedUsers,
+    sortBy,
+    onSortChange: setSortBy,
+  }
+
   if (isLoading) {
-    return <p className="items-message">Ładowanie sprzętu...</p>
+    return (
+      <>
+        <Toolbar {...toolbarProps} />
+        <p className="items-message">Ładowanie sprzętu...</p>
+      </>
+    )
   }
 
   if (error) {
-    return <p className="items-message">Nie udało się pobrać sprzętu: {error}</p>
+    return (
+      <>
+        <Toolbar {...toolbarProps} />
+        <p className="items-message">Nie udało się pobrać sprzętu: {error}</p>
+      </>
+    )
   }
 
   let tableClass = 'table-wrapper items'
@@ -149,7 +201,12 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
 
   let addButton = null
   if (isAdmin && !showForm) {
-    addButton = <button className="add-button" type="button" onClick={openForm}>Dodaj sprzęt</button>
+    addButton = (
+      <button className="add-button" type="button" onClick={openForm}>
+        <PlusIcon />
+        Dodaj sprzęt
+      </button>
+    )
   }
 
   // Zmieniono: formularz renderuje się jako elegancki box na środku ekranu (modal)
@@ -212,79 +269,77 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   const sortedItems = visibleItems.slice().sort(compareItems)
 
   return (
-    <div className={tableClass}>
-      {addButton}
+    <>
+      <Toolbar {...toolbarProps}>{addButton}</Toolbar>
       {form}
-      <select className="sort-select" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-        <option value="inventory_number">Sortuj: numer inwentarzowy</option>
-        <option value="manufacturer">Sortuj: producent</option>
-        <option value="model">Sortuj: model</option>
-      </select>
-      <table>
-        <thead>
-          <tr>
-            <th>Nr inwentarzowy</th>
-            <th>Producent i model</th>
-            <th>Lokalizacja</th>
-            <th>Przypisany do</th>
-            <th>Status</th>
-            {isAdmin && <th>Edytuj</th>}
-            {isAdmin && <th>Usuń</th>}
-            {moveHeader}
-          </tr>
-        </thead>
-        <tbody>
-          {sortedItems.map((item) => {
-            const status = statusLabels[item.status?.name] ?? { label: item.status?.name ?? 'Nieznany', variant: 'archive',}
-
-            let moveCell = null
-            if (canMove) {
-              moveCell = (
-                <td>
-                  <LocationSelect item={item} locations={locations} onMove={handleMove} />
-                </td>
-              )
-            }
-
-            return (
-              <tr key={item.id}>
-                <td className="inventory">{item.inventory_number}</td>
-                <td className="product">{item.manufacturer} {item.model}</td>
-                <td>
-                  {item.location ? `${item.location.building}, ${item.location.room}` : <span className="dash">—</span>}</td>
-                <td>{item.assignedUser?.email || <span className="dash">—</span>}</td>
-                <td>
-                  <span className={`status-pill ${status.variant}`}>
-                    <span className="status-pill-dot" />{status.label}</span>
-                </td>
-                {isAdmin && (
-                  <td>
-                    <button type="button" className="edit-button" onClick={() => openEditForm(item)}>
-                      Edytuj
-                    </button>
-                  </td>
-                )}
-                {isAdmin && (
-                  <td>
-                    <button
-                      type="button"
-                      className="danger-button"
-                      onClick={() => handleDelete(item)}
-                      disabled={deletingItemId !== null}
-                    >
-                      {deletingItemId === item.id ? 'Usuwanie...' : 'Usuń'}
-                    </button>
-                  </td>
-                )}
-                {moveCell}
+      <div className={tableClass}>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Nr inwentarzowy</th>
+                <th>Producent i model</th>
+                <th>Lokalizacja</th>
+                <th>Przypisany do</th>
+                <th>Status</th>
+                {moveHeader}
+                {isAdmin && <th>Akcje</th>}
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
-      {actionError && <p className="items-message table-error" role="alert">{actionError}</p>}
-      {visibleItems.length === 0 && <p className="items-message">Brak sprzętu do wyświetlenia.</p>}
-    </div>
+            </thead>
+            <tbody>
+              {sortedItems.map((item) => {
+                const status = statusLabels[item.status?.name] ?? { label: item.status?.name ?? 'Nieznany', variant: 'archive',}
+
+                let moveCell = null
+                if (canMove) {
+                  moveCell = (
+                    <td className="move-cell" data-label="Przenieś do">
+                      <LocationSelect item={item} locations={locations} onMove={handleMove} />
+                    </td>
+                  )
+                }
+
+                return (
+                  <tr key={item.id}>
+                    <td className="inventory"><span className="inventory-tag">{item.inventory_number}</span></td>
+                    <td className="product">{item.manufacturer} {item.model}</td>
+                    <td data-label="Lokalizacja">
+                      {item.location ? `${item.location.building}, ${item.location.room}` : <span className="dash">—</span>}</td>
+                    <td data-label="Przypisany do">{item.assignedUser?.email || <span className="dash">—</span>}</td>
+                    <td data-label="Status">
+                      <span className={`status-pill ${status.variant}`}>
+                        <span className="status-pill-dot" />{status.label}</span>
+                    </td>
+                    {moveCell}
+                    {isAdmin && (
+                      <td className="actions-cell">
+                        <div className="row-actions">
+                          <button type="button" className="edit-button" onClick={() => openEditForm(item)}>
+                            <EditIcon />
+                            Edytuj
+                          </button>
+                          <button
+                            type="button"
+                            className="danger-button"
+                            onClick={() => handleDelete(item)}
+                            disabled={deletingItemId !== null}
+                          >
+                            <TrashIcon />
+                            {deletingItemId === item.id ? 'Usuwanie...' : 'Usuń'}
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        {actionError && <p className="items-message table-error" role="alert">{actionError}</p>}
+        {visibleItems.length === 0 && <p className="items-message">Brak sprzętu do wyświetlenia.</p>}
+      </div>
+    </>
   )
 }
 
