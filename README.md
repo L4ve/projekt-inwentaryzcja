@@ -498,6 +498,14 @@ POST /api/admin/users
 Content-Type: application/json
 ```
 
+**Nowa sekcja: Responsywność strony (RWD)**
+markdown
+## Responsywność strony (RWD)
+```
+Interfejs użytkownika został zaprojektowany w podejściu *Mobile-First* z użyciem nowoczesnych technik CSS (Grid, Flexbox oraz zapytania mediów – *Media Queries*). 
+- **Urządzenia mobilne (smartfony, tablety):** Tabele danych przekształcają się w czytelne karty lub posiadają poziomy pasek przewijania, menu nawigacyjne dopasowuje się do mniejszych ekranów, a formularze i przyciski akcji są zoptymalizowane pod kątem sterowania dotykowego.
+```
+
 Dostęp: tylko `admin`. To jedyny sposób zakładania kont.
 
 Przykładowe żądanie:
@@ -507,6 +515,14 @@ Przykładowe żądanie:
   "email": "nowy@example.com",
   "password": "dlugiehaslo12345",
   "roleId": 2
+}
+```
+
+Usuwanie danych
+```
+POST /api/admin/db/reset
+{
+  "message": "Baza danych została zresetowana, a dane usunięte."
 }
 ```
 
