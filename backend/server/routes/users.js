@@ -19,6 +19,7 @@ router.get('/users', async (req, res) => {
 
 router.get('/roles', async (req, res) => {
   const roles = await UserRole.findAll({
+    where: { role: ['admin', 'manager'] },
     attributes: ['id', 'role'],
     order: [['id', 'ASC']],
   })
@@ -77,8 +78,12 @@ router.delete('/users/:id', async (req, res) => {
   if (user.id === req.user.id) return res.status(400).json({ error: 'Nie możesz usunąć własnego konta.' })
   if (user.role_id === 1 && await countAdmins() <= 1) return res.status(400).json({ error: 'Nie można usunąć ostatniego administratora.' })
 
-  await user.destroy()
-  res.status(204).send()
+  try {
+    await user.destroy()
+    res.status(204).send()
+  } catch {
+    res.status(409).json({ error: 'Nie można usunąć użytkownika, bo ma wpisy w dzienniku zdarzeń.' })
+  }
 })
 
 function formatUser(user) {

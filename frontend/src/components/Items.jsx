@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getItemsWithDetails, getLocations, getUsers, moveItem } from '../api/items'
+import { deleteItem, getItemsWithDetails, getLocations, getUsers, moveItem } from '../api/items'
 import ItemForm from './ItemForm'
 
 const statusLabels = {
@@ -36,11 +36,13 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   const [users, setUsers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [deletingItemId, setDeletingItemId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [sortBy, setSortBy] = useState('inventory_number')
 
-  const canMove = role === 'admin' || role === 'manager'
+  const canMove = role === 'manager'
   const isAdmin = role === 'admin'
 
   async function loadItems() {
@@ -115,6 +117,23 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
     }
   }
 
+  async function handleDelete(item) {
+    if (!window.confirm(`Czy na pewno usunąć sprzęt ${item.inventory_number}? Tej operacji nie można cofnąć.`)) {
+      return
+    }
+
+    try {
+      setDeletingItemId(item.id)
+      setActionError('')
+      await deleteItem(item.id)
+      await loadItems()
+    } catch (deleteError) {
+      setActionError(deleteError.message)
+    } finally {
+      setDeletingItemId(null)
+    }
+  }
+
   if (isLoading) {
     return <p className="items-message">Ładowanie sprzętu...</p>
   }
@@ -124,7 +143,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   }
 
   let tableClass = 'table-wrapper items'
-  if (canMove) {
+  if (canMove || isAdmin) {
     tableClass = 'table-wrapper items with-actions'
   }
 
@@ -210,6 +229,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
             <th>Przypisany do</th>
             <th>Status</th>
             {isAdmin && <th>Edytuj</th>}
+            {isAdmin && <th>Usuń</th>}
             {moveHeader}
           </tr>
         </thead>
@@ -244,12 +264,25 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
                     </button>
                   </td>
                 )}
+                {isAdmin && (
+                  <td>
+                    <button
+                      type="button"
+                      className="danger-button"
+                      onClick={() => handleDelete(item)}
+                      disabled={deletingItemId !== null}
+                    >
+                      {deletingItemId === item.id ? 'Usuwanie...' : 'Usuń'}
+                    </button>
+                  </td>
+                )}
                 {moveCell}
               </tr>
             )
           })}
         </tbody>
       </table>
+      {actionError && <p className="items-message table-error" role="alert">{actionError}</p>}
       {visibleItems.length === 0 && <p className="items-message">Brak sprzętu do wyświetlenia.</p>}
     </div>
   )

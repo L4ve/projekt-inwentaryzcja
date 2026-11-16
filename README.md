@@ -15,7 +15,7 @@ Prosta aplikacja do ewidencji sprzętu.
 
 ## Instalacja
 
-Zależności instaluje się osobno dla backendu i frontendu:
+Wymagany jest Node.js 20 lub nowszy, npm oraz Docker Desktop. Zależności instaluje się osobno dla backendu i frontendu:
 
 ```powershell
 cd backend/server
@@ -31,10 +31,11 @@ npm install
 2. Utwórz plik `backend/server/.env` na podstawie [`backend/server/.env.example`](./backend/server/.env.example):
 
    ```env
+  DB_HOST=127.0.0.1
+  DB_PORT=3306
    DB_NAME=inwentarz
    DB_USER=root
-    DB_PASSWORD=root
-   DB_HOST=127.0.0.1
+  DB_PASSWORD=root
    FRONTEND_ORIGIN=http://localhost:5173
    ```
 
@@ -44,7 +45,7 @@ npm install
   npm run db:up
   ```
 
-  Przy pierwszym uruchomieniu Docker automatycznie wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w Docker volume i nie są importowane ponownie przy zwykłym restarcie.
+  Skrypt uruchamia usługę MySQL z pliku [`docker-compose.yml`](./docker-compose.yml). Przy pierwszym utworzeniu wolumenu Docker wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w wolumenie i nie są importowane ponownie przy zwykłym restarcie.
 
   Aby całkowicie odtworzyć bazę razem z usunięciem danych, użyj:
 
@@ -52,29 +53,31 @@ npm install
   npm run db:reset
   ```
 
-   `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie (domyślnie `http://localhost:5173`).
-
-   Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
-
+  `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie. Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
 
 ## Uruchomienie
 
-### Cała aplikacja
+### Baza danych
 
 Z katalogu głównego projektu:
 
 ```powershell
-npm run dev
+npm run db:up
 ```
-
-Polecenie uruchamia backend i frontend jednocześnie. Wcześniej uruchom bazę poleceniem `npm run db:up`.
 
 ### Backend
 
+W osobnym terminalu:
+
 ```powershell
 cd backend/server
-npm install
 npm run dev
+```
+
+Można też uruchomić backend z katalogu głównego:
+
+```powershell
+npm run dev:backend
 ```
 
 API będzie dostępne pod adresem:
@@ -87,12 +90,17 @@ Obecna konfiguracja serwera korzysta ze stałego portu `4000`.
 
 ### Frontend
 
-W drugim terminalu:
+W kolejnym terminalu:
 
 ```powershell
 cd frontend
-npm install
 npm run dev
+```
+
+Można też uruchomić frontend z katalogu głównego:
+
+```powershell
+npm run dev:frontend
 ```
 
 Vite wyświetli adres lokalny, zazwyczaj:
@@ -124,22 +132,23 @@ backend/server/
 │   ├── items.js          # /api/items (CRUD sprzętu, szczegóły, przenoszenie)
 │   └── locations.js      # /api/locations
 └── utils/
-    ├── validation.js     # walidacja e-maila, ID i danych sprzętu
+    ├── validation.js      # walidacja e-maila, ID i danych sprzętu
+    ├── validation.test.js # testy jednostkowe walidacji
     ├── session.js        # tworzenie sesji i obsługa ciasteczka
     └── loginLimit.js     # limit prób logowania
 ```
 
 ## Logowanie i role
 
-Aby korzystać z aplikacji, trzeba się zalogować (po adresie email i haśle). Logować się mogą tylko `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
+Odczyt listy sprzętu jest publiczny i nie wymaga logowania. Logowanie (po adresie email i haśle) służy do zmian i jest dostępne tylko dla `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
 
 | Rola | `id` roli | Uprawnienia |
 | --- | --- | --- |
 | `manager` (moderator) | `2` | Podgląd listy sprzętu oraz przenoszenie sprzętu (zmiana lokalizacji) |
 | `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu oraz zarządzanie kontami i rolami |
-| `user` | `3` | Brak możliwości logowania (konto z tą rolą dostaje `403`) |
+| `user` | `3` | Rola nieużywana: odczyt jest publiczny, więc nie ma jej w wyborze w panelu. Konto z tą rolą nie może się zalogować (`403`) |
 
-W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj”, a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
+W aplikacji moderator przenosi sprzęt listą w kolumnie „Przenieś do”, a admin zmienia lokalizację w formularzu edycji. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj” i usuwa przyciskiem „Usuń” w tabeli (po potwierdzeniu), a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
 
 Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe ze wspólnym hasłem `haslo123`, przeznaczone tylko do rozwoju:
 
@@ -148,6 +157,16 @@ Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.
 | `admin@example.com` | `admin` |
 | `manager@example.com` | `manager` |
 | `user@example.com` | `user` |
+
+## Testy
+
+Z katalogu głównego projektu uruchom:
+
+```powershell
+npm test
+```
+
+Testy backendu korzystają z wbudowanego runnera Node.js.
 
 ## API
 
@@ -229,7 +248,7 @@ Kończy sesję i zwraca `204 No Content`.
 GET /api/items
 ```
 
-Dostęp: każdy zalogowany użytkownik.
+Dostęp: bez logowania.
 
 ### Pobranie elementów wraz ze szczegółami
 
@@ -237,7 +256,7 @@ Dostęp: każdy zalogowany użytkownik.
 GET /api/items/details
 ```
 
-Dostęp: każdy zalogowany użytkownik. Oprócz pól sprzętu (łącznie z `location_id`, `status_id` i `assigned_to`) zwraca obiekty `status`, `location` i `assignedUser` (lub `null`, gdy brak):
+Dostęp: bez logowania. Oprócz pól sprzętu (łącznie z `location_id`, `status_id` i `assigned_to`) zwraca obiekty `status`, `location` i `assignedUser` (lub `null`, gdy brak):
 
 ```json
 [
@@ -264,7 +283,7 @@ Dostęp: każdy zalogowany użytkownik. Oprócz pól sprzętu (łącznie z `loca
 GET /api/locations
 ```
 
-Dostęp: każdy zalogowany użytkownik. Zwraca listę lokalizacji:
+Dostęp: bez logowania. Zwraca listę lokalizacji:
 
 ```json
 [
@@ -278,7 +297,7 @@ Dostęp: każdy zalogowany użytkownik. Zwraca listę lokalizacji:
 GET /api/items/:id
 ```
 
-Dostęp: każdy zalogowany użytkownik.
+Dostęp: bez logowania.
 
 Jeśli element nie istnieje:
 
@@ -463,13 +482,12 @@ Dostęp: tylko `admin`. Odpowiedź:
 GET /api/admin/roles
 ```
 
-Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom:
+Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom (bez roli `user`):
 
 ```json
 [
   { "id": 1, "role": "admin" },
-  { "id": 2, "role": "manager" },
-  { "id": 3, "role": "user" }
+  { "id": 2, "role": "manager" }
 ]
 ```
 
@@ -478,6 +496,14 @@ Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom:
 ```http
 POST /api/admin/users
 Content-Type: application/json
+```
+
+**Nowa sekcja: Responsywność strony (RWD)**
+markdown
+## Responsywność strony (RWD)
+```
+Interfejs użytkownika został zaprojektowany w podejściu *Mobile-First* z użyciem nowoczesnych technik CSS (Grid, Flexbox oraz zapytania mediów – *Media Queries*). 
+- **Urządzenia mobilne (smartfony, tablety):** Tabele danych przekształcają się w czytelne karty lub posiadają poziomy pasek przewijania, menu nawigacyjne dopasowuje się do mniejszych ekranów, a formularze i przyciski akcji są zoptymalizowane pod kątem sterowania dotykowego.
 ```
 
 Dostęp: tylko `admin`. To jedyny sposób zakładania kont.
@@ -489,6 +515,14 @@ Przykładowe żądanie:
   "email": "nowy@example.com",
   "password": "dlugiehaslo12345",
   "roleId": 2
+}
+```
+
+Usuwanie danych
+```
+POST /api/admin/db/reset
+{
+  "message": "Baza danych została zresetowana, a dane usunięte."
 }
 ```
 

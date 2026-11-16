@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 function AccessPage({ apiUrl }) {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [form, setForm] = useState({ email: "", password: "", roleId: "3" });
+  const [form, setForm] = useState({ email: "", password: "", roleId: "2" });
   const [pendingRoles, setPendingRoles] = useState({});
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -42,7 +42,7 @@ function AccessPage({ apiUrl }) {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return setError(data.error || "Nie udało się utworzyć użytkownika.");
-    setForm({ email: "", password: "", roleId: "3" });
+    setForm({ email: "", password: "", roleId: "2" });
     setMessage("Użytkownik został utworzony.");
     await loadUsers();
   }
