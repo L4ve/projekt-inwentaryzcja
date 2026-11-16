@@ -42,7 +42,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   const [editingItem, setEditingItem] = useState(null)
   const [sortBy, setSortBy] = useState('inventory_number')
 
-  const canMove = role === 'admin' || role === 'manager'
+  const canMove = role === 'manager'
   const isAdmin = role === 'admin'
 
   async function loadItems() {
@@ -143,7 +143,7 @@ function Items({ role, search, statusFilter, assignedFilter, onAssignedUsersChan
   }
 
   let tableClass = 'table-wrapper items'
-  if (canMove) {
+  if (canMove || isAdmin) {
     tableClass = 'table-wrapper items with-actions'
   }
 

@@ -588,7 +588,7 @@ tbody tr:last-child td {
 
 .add-button {
   display: block;
-  margin: 12px;
+  margin: 12px 12px 12px auto;
 }
 
 .sort-select {
@@ -634,6 +634,7 @@ tbody tr:last-child td {
   color: var(--color-text);
 }
 
+.add-button,
 .edit-button {
   cursor: pointer;
   background: var(--color-primary);

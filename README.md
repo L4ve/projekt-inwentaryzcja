@@ -140,15 +140,15 @@ backend/server/
 
 ## Logowanie i role
 
-Aby korzystać z aplikacji, trzeba się zalogować (po adresie email i haśle). Logować się mogą tylko `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
+Odczyt listy sprzętu jest publiczny i nie wymaga logowania. Logowanie (po adresie email i haśle) służy do zmian i jest dostępne tylko dla `admin` i `manager`. Konta zakłada wyłącznie `admin`, nie ma samodzielnej rejestracji. Uprawnienia zależą od roli użytkownika:
 
 | Rola | `id` roli | Uprawnienia |
 | --- | --- | --- |
 | `manager` (moderator) | `2` | Podgląd listy sprzętu oraz przenoszenie sprzętu (zmiana lokalizacji) |
 | `admin` | `1` | Wszystko: przenoszenie, dodawanie, edycja i usuwanie sprzętu oraz zarządzanie kontami i rolami |
-| `user` | `3` | Brak możliwości logowania (konto z tą rolą dostaje `403`) |
+| `user` | `3` | Rola nieużywana: odczyt jest publiczny, więc nie ma jej w wyborze w panelu. Konto z tą rolą nie może się zalogować (`403`) |
 
-W aplikacji moderator i admin przenoszą sprzęt listą w kolumnie „Przenieś do”. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj” i usuwa przyciskiem „Usuń” w tabeli (po potwierdzeniu), a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
+W aplikacji moderator przenosi sprzęt listą w kolumnie „Przenieś do”, a admin zmienia lokalizację w formularzu edycji. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj” i usuwa przyciskiem „Usuń” w tabeli (po potwierdzeniu), a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
 
 Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe ze wspólnym hasłem `haslo123`, przeznaczone tylko do rozwoju:
 
@@ -248,7 +248,7 @@ Kończy sesję i zwraca `204 No Content`.
 GET /api/items
 ```
 
-Dostęp: każdy zalogowany użytkownik.
+Dostęp: bez logowania.
 
 ### Pobranie elementów wraz ze szczegółami
 
@@ -256,7 +256,7 @@ Dostęp: każdy zalogowany użytkownik.
 GET /api/items/details
 ```
 
-Dostęp: każdy zalogowany użytkownik. Oprócz pól sprzętu (łącznie z `location_id`, `status_id` i `assigned_to`) zwraca obiekty `status`, `location` i `assignedUser` (lub `null`, gdy brak):
+Dostęp: bez logowania. Oprócz pól sprzętu (łącznie z `location_id`, `status_id` i `assigned_to`) zwraca obiekty `status`, `location` i `assignedUser` (lub `null`, gdy brak):
 
 ```json
 [
@@ -283,7 +283,7 @@ Dostęp: każdy zalogowany użytkownik. Oprócz pól sprzętu (łącznie z `loca
 GET /api/locations
 ```
 
-Dostęp: każdy zalogowany użytkownik. Zwraca listę lokalizacji:
+Dostęp: bez logowania. Zwraca listę lokalizacji:
 
 ```json
 [
@@ -297,7 +297,7 @@ Dostęp: każdy zalogowany użytkownik. Zwraca listę lokalizacji:
 GET /api/items/:id
 ```
 
-Dostęp: każdy zalogowany użytkownik.
+Dostęp: bez logowania.
 
 Jeśli element nie istnieje:
 
@@ -482,13 +482,12 @@ Dostęp: tylko `admin`. Odpowiedź:
 GET /api/admin/roles
 ```
 
-Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom:
+Dostęp: tylko `admin`. Zwraca role, które można przypisać użytkownikom (bez roli `user`):
 
 ```json
 [
   { "id": 1, "role": "admin" },
-  { "id": 2, "role": "manager" },
-  { "id": 3, "role": "user" }
+  { "id": 2, "role": "manager" }
 ]
 ```
 
