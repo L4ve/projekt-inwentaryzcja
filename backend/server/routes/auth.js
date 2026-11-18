@@ -63,9 +63,13 @@ router.get('/me', requireAuth, (req, res) => {
 })
 
 router.post('/logout', async (req, res) => {
-  const sessionToken = getCookie(req, authCookieName)
-  if (sessionToken) {
-    await Session.destroy({ where: { token_hash: hashToken(sessionToken) } })
+  try {
+    const sessionToken = getCookie(req, authCookieName)
+    if (sessionToken) {
+      await Session.destroy({ where: { token_hash: hashToken(sessionToken) } })
+    }
+  } catch (err) {
+    console.error('LOGOUT ERROR:', err)
   }
 
   clearSessionCookie(res)

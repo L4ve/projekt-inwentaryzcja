@@ -42,23 +42,31 @@ function Login({ apiUrl, onLogin, onBack }) {
   }
 
   return (
-    <main className="login-page">
-      <form className="login-card" onSubmit={handleSubmit}>
-        <div className="login-brand">📦 Ewidencja <span>Sprzętu</span></div>
-        <div className="login-heading">
-          <h1>Panel logowania</h1>
-          <p>Logowanie dla moderatorów i administratorów.</p>
+    <main className="min-vh-100 d-flex flex-column align-items-center justify-content-center gap-3 p-3">
+      <form className="login-card card w-100 shadow-sm overflow-hidden" onSubmit={handleSubmit}>
+        <div className="card-header bg-body-tertiary d-flex align-items-center gap-2 fw-semibold py-3 px-4">
+          <i className="bi bi-box-seam text-primary fs-5" />
+          <span>Ewidencja Sprzętu</span>
         </div>
-        <label htmlFor="user-email">Adres email</label>
-        <input id="user-email" type="email" maxLength="254" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required/>
-        <label htmlFor="password">Hasło</label>
-        <input id="password" type="password" maxLength="256" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required/>
-        {error && <p className="login-error" role="alert">{error}</p>}
-        <button className="login-button" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Logowanie..." : "Zaloguj się"}
-        </button>
-        {onBack && <button className="login-switch-button" type="button" onClick={onBack}>Wróć do ewidencji</button>}
+        <div className="card-body p-4">
+          <h1 className="h4 fw-semibold mb-1">Panel logowania</h1>
+          <p className="text-secondary mb-4">Logowanie dla moderatorów i administratorów.</p>
+          <label className="form-label small fw-medium" htmlFor="user-email">Adres email</label>
+          <input className="form-control mb-3" id="user-email" type="email" maxLength="254" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required/>
+          <label className="form-label small fw-medium" htmlFor="password">Hasło</label>
+          <input className="form-control mb-3" id="password" type="password" maxLength="256" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required/>
+          {error && <p className="text-danger small mb-1" role="alert">{error}</p>}
+          <button className="btn btn-primary w-100 py-2 mt-2" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Logowanie..." : "Zaloguj się"}
+          </button>
+        </div>
       </form>
+      {onBack && (
+        <button className="btn btn-link link-secondary text-decoration-none d-flex align-items-center gap-2" type="button" onClick={onBack}>
+          <i className="bi bi-arrow-left" />
+          Wróć do ewidencji
+        </button>
+      )}
     </main>
   );
 }

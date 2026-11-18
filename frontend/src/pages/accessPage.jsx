@@ -78,35 +78,47 @@ function AccessPage({ apiUrl }) {
   }
 
   return (
-    <div className="admin-page">
-      <h1>Zarządzanie Dostępem</h1>
-      <form className="admin-form" onSubmit={createUser}>
-        <h2>Dodaj użytkownika</h2>
-        <input type="email" maxLength="254" placeholder="Adres email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
-        <input type="password" minLength="12" maxLength="128" placeholder="Hasło (min. 12 znaków)" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required />
-        <select value={form.roleId} onChange={(event) => setForm({ ...form, roleId: event.target.value })}>
-          {roles.map((role) => <option key={role.id} value={role.id}>{role.role}</option>)}
-        </select>
-        <button type="submit" className="primary-button">Utwórz</button>
+    <div>
+      <h1 className="h4 fw-semibold mb-3">Zarządzanie Dostępem</h1>
+      <form className="card mb-3 overflow-hidden" onSubmit={createUser}>
+        <h2 className="card-header bg-body-tertiary fs-6 fw-semibold py-3 mb-0">Dodaj użytkownika</h2>
+        <div className="admin-form card-body d-flex flex-wrap gap-2">
+          <input className="form-control flex-grow-1 w-auto" type="email" aria-label="Adres email" maxLength="254" placeholder="Adres email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
+          <input className="form-control flex-grow-1 w-auto" type="password" aria-label="Hasło" minLength="12" maxLength="128" placeholder="Hasło (min. 12 znaków)" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required />
+          <select className="form-select w-auto" aria-label="Rola" value={form.roleId} onChange={(event) => setForm({ ...form, roleId: event.target.value })}>
+            {roles.map((role) => <option key={role.id} value={role.id}>{role.role}</option>)}
+          </select>
+          <button type="submit" className="btn btn-primary">Utwórz</button>
+        </div>
       </form>
-      {error && <p className="login-error" role="alert">{error}</p>}
-      {message && <p className="admin-message" role="status">{message}</p>}
-      <div className="table-wrapper">
-        <table>
-          <thead><tr><th>Email</th><th>Rola</th><th>Akcje</th></tr></thead>
-          <tbody>{users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.email}</td>
-              <td>
-                <select value={pendingRoles[user.id] ?? user.roleId} onChange={(event) => setPendingRoles((current) => ({ ...current, [user.id]: event.target.value }))}>
-                  {roles.map((role) => <option key={role.id} value={role.id}>{role.role}</option>)}
-                </select>
-                {pendingRoles[user.id] && <button type="button" className="primary-button role-confirm-button" onClick={() => changeRole(user.id, pendingRoles[user.id])}>Potwierdź</button>}
-              </td>
-              <td><button type="button" className="danger-button" onClick={() => removeUser(user.id)}>Usuń</button></td>
-            </tr>
-          ))}</tbody>
-        </table>
+      {error && <p className="text-danger mb-3" role="alert">{error}</p>}
+      {message && <p className="text-success-emphasis mb-3" role="status">{message}</p>}
+      <div className="card overflow-hidden">
+        <div className="table-responsive">
+          <table className="access-table table table-hover align-middle mb-0">
+            <thead><tr><th>Email</th><th>Rola</th><th>Akcje</th></tr></thead>
+            <tbody>{users.map((user) => (
+              <tr key={user.id}>
+                <td className="fw-medium text-body">{user.email}</td>
+                <td>
+                  <div className="d-flex align-items-center gap-2">
+                    <select className="form-select form-select-sm w-auto" aria-label={`Rola: ${user.email}`} value={pendingRoles[user.id] ?? user.roleId} onChange={(event) => setPendingRoles((current) => ({ ...current, [user.id]: event.target.value }))}>
+                      {!roles.some((role) => role.id === user.roleId) && <option value={user.roleId} disabled>{user.role}</option>}
+                      {roles.map((role) => <option key={role.id} value={role.id}>{role.role}</option>)}
+                    </select>
+                    {pendingRoles[user.id] && <button type="button" className="btn btn-primary btn-sm" onClick={() => changeRole(user.id, pendingRoles[user.id])}>Potwierdź</button>}
+                  </div>
+                </td>
+                <td className="row-actions">
+                  <button type="button" className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={() => removeUser(user.id)}>
+                    <i className="bi bi-trash" />
+                    Usuń
+                  </button>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

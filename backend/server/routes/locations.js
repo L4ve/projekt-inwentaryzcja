@@ -8,7 +8,8 @@ router.get('/', async (req, res) => {
     const locations = await Location.findAll()
     res.json(locations)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 

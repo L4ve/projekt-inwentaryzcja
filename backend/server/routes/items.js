@@ -23,7 +23,8 @@ router.get('/details', async (req, res) => {
 
     res.status(200).json(items)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
@@ -36,7 +37,8 @@ router.get('/:id', async (req, res) => {
 
     res.status(200).json(item)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
@@ -45,7 +47,8 @@ router.get('/', async (req, res) => {
     const items = await Item.findAll()
     res.status(200).json(items)
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
@@ -84,7 +87,8 @@ router.post('/', requireAuth, onlyAdmin, async (req, res) => {
       return res.status(409).json({ error: 'Numer przedmiotu już istnieje.' })
     }
 
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
@@ -141,7 +145,8 @@ router.patch('/:id', requireAuth, onlyAdmin, async (req, res) => {
     if (err.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ error: 'Numer przedmiotu już istnieje.' })
     }
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
@@ -155,7 +160,8 @@ router.delete('/:id', requireAuth, onlyAdmin, async (req, res) => {
     await item.destroy()
     res.status(200).json({ message: 'Przedmiot usunięty.' })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
@@ -164,7 +170,8 @@ router.patch('/:id/location', requireAuth, adminOrManager, async (req, res) => {
     await Item.update({ location_id: req.body.location_id }, { where: { id: req.params.id } })
     res.json({ message: 'Przedmiot przeniesiony.' })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(err)
+    res.status(500).json({ error: 'Błąd serwera.' })
   }
 })
 
