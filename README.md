@@ -15,7 +15,7 @@ Prosta aplikacja do ewidencji sprzętu.
 
 ## Adres railway
 
-[`inwentaryzacja-frontend.up.railway.app`]
+https://inwentaryzacja-frontend.up.railway.app
 
 ## Instalacja
 
