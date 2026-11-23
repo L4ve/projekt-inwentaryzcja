@@ -1,4 +1,4 @@
-# Projekt inwentaryzacji
+# Projekt inwentaryzacji sprzętu
 
 Prosta aplikacja do ewidencji sprzętu.
 
@@ -34,7 +34,7 @@ Copy-Item backend/server/.env.example backend/server/.env
 ## Konfiguracja bazy danych
 
 1. Uruchom Docker Desktop.
-2. Z katalogu głównego projektu uruchom bazę:
+2. Z katalogu głównego projektu uruchom bazę danych:
 
   ```powershell
   npm run db:up
@@ -48,7 +48,7 @@ Copy-Item backend/server/.env.example backend/server/.env
   npm run db:reset
   ```
 
-  `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie. Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
+  `FRONTEND_ORIGIN` jest adresem frontendu, któremu backend zezwala na połączenie. Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
 
 ## Uruchomienie
 
