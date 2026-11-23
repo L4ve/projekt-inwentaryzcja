@@ -91,30 +91,34 @@ function ItemForm({ item, locations, users, onSaved, onCancel }) {
 
   let errorMessage = null;
   if (error) {
-    errorMessage = <p className="login-error">{error}</p>;
+    errorMessage = <p className="col-12 text-danger small mb-0">{error}</p>;
   }
 
   return (
     <form className="item-form" onSubmit={handleSubmit}>
-      <input placeholder="Numer inwentarzowy" value={inventoryNumber} onChange={changeInventoryNumber} required maxLength="100" />
-      <input placeholder="Producent" value={manufacturer} onChange={changeManufacturer} />
-      <input placeholder="Model" value={model} onChange={changeModel} />
-      <label>Data zakupu<input type="date" value={purchaseDate} onChange={(event) => setPurchaseDate(event.target.value)} /></label>
-      <label>Cena<input type="number" min="0" step="0.01" value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)} /></label>
-      <label>Lokalizacja<select value={locationId} onChange={(event) => setLocationId(event.target.value)}>
-        <option value="">Bez lokalizacji</option>
-        {locations.map((location) => <option key={location.id} value={location.id}>{location.building}, {location.room}</option>)}
-      </select></label>
-      <label>Status<select value={statusId} onChange={(event) => setStatusId(event.target.value)}>
-        {statuses.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-      </select></label>
-      <label>Przypisany do<select value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)}>
-        <option value="">Nikt</option>
-        {users.map((user) => <option key={user.id} value={user.id}>{user.email}</option>)}
-      </select></label>
-      <button type="submit">{item ? "Zapisz zmiany" : "Zapisz"}</button>
-      <button type="button" onClick={onCancel}>Anuluj</button>
-      {errorMessage}
+      <div className="modal-body row g-3 mx-0 px-2">
+        <label className="col-12 form-label small fw-medium mb-0">Numer inwentarzowy<input className="form-control font-monospace mt-1" value={inventoryNumber} onChange={changeInventoryNumber} required maxLength="100" /></label>
+        <label className="col-sm-6 form-label small fw-medium mb-0">Producent<input className="form-control mt-1" value={manufacturer} onChange={changeManufacturer} /></label>
+        <label className="col-sm-6 form-label small fw-medium mb-0">Model<input className="form-control mt-1" value={model} onChange={changeModel} /></label>
+        <label className="col-sm-6 form-label small fw-medium mb-0">Data zakupu<input className="form-control mt-1" type="date" value={purchaseDate} onChange={(event) => setPurchaseDate(event.target.value)} /></label>
+        <label className="col-sm-6 form-label small fw-medium mb-0">Cena<input className="form-control mt-1" type="number" min="0" step="0.01" value={purchasePrice} onChange={(event) => setPurchasePrice(event.target.value)} /></label>
+        <label className="col-12 form-label small fw-medium mb-0">Lokalizacja<select className="form-select mt-1" value={locationId} onChange={(event) => setLocationId(event.target.value)}>
+          <option value="">Bez lokalizacji</option>
+          {locations.map((location) => <option key={location.id} value={location.id}>{location.building}, {location.room}</option>)}
+        </select></label>
+        <label className="col-sm-6 form-label small fw-medium mb-0">Status<select className="form-select mt-1" value={statusId} onChange={(event) => setStatusId(event.target.value)}>
+          {statuses.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+        </select></label>
+        <label className="col-sm-6 form-label small fw-medium mb-0">Przypisany do<select className="form-select mt-1" value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)}>
+          <option value="">Nikt</option>
+          {users.map((user) => <option key={user.id} value={user.id}>{user.email}</option>)}
+        </select></label>
+        {errorMessage}
+      </div>
+      <div className="modal-footer">
+        <button className="btn btn-outline-secondary" type="button" onClick={onCancel}>Anuluj</button>
+        <button className="btn btn-primary" type="submit">{item ? "Zapisz zmiany" : "Zapisz"}</button>
+      </div>
     </form>
   );
 }

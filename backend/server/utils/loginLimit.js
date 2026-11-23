@@ -23,7 +23,7 @@ export function registerFailedAttempt(clientKey) {
   const now = Date.now()
 
   if (!attempt || attempt.resetAt <= now) {
-    loginAttempts.set(clientKey, { count: 1, resetAt: now + 15 * 60 * 1000 })
+    loginAttempts.set(clientKey, { count: 1, resetAt: now + 5 * 60 * 1000 })
     return
   }
 

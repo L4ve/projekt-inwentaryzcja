@@ -1,4 +1,4 @@
-# Projekt inwentaryzacji
+# Projekt inwentaryzacji sprzętu
 
 Prosta aplikacja do ewidencji sprzętu.
 
@@ -13,39 +13,38 @@ Prosta aplikacja do ewidencji sprzętu.
 - npm,
 - Docker Desktop.
 
+## Adres railway
+
+https://inwentaryzacja-frontend.up.railway.app
+
 ## Instalacja
 
-Wymagany jest Node.js 20 lub nowszy, npm oraz Docker Desktop. Zależności instaluje się osobno dla backendu i frontendu:
+Wymagany jest Node.js 20 lub nowszy, npm oraz Docker Desktop. Poniższa procedura działa na świeżo sklonowanym repozytorium:
 
 ```powershell
-cd backend/server
-npm install
+git clone https://github.com/L4ve/projekt-inwentaryzcja.git
+cd projekt-inwentaryzcja
 
-cd ../../frontend
-npm install
+npm install --prefix backend/server
+npm install --prefix frontend
+```
+
+Po instalacji zależności utwórz lokalną konfigurację backendu:
+
+```powershell
+Copy-Item backend/server/.env.example backend/server/.env
 ```
 
 ## Konfiguracja bazy danych
 
 1. Uruchom Docker Desktop.
-2. Utwórz plik `backend/server/.env` na podstawie [`backend/server/.env.example`](./backend/server/.env.example):
-
-   ```env
-  DB_HOST=127.0.0.1
-  DB_PORT=3306
-   DB_NAME=inwentarz
-   DB_USER=root
-  DB_PASSWORD=root
-   FRONTEND_ORIGIN=http://localhost:5173
-   ```
-
-3. Uruchom bazę z katalogu głównego projektu:
+2. Z katalogu głównego projektu uruchom bazę danych:
 
   ```powershell
   npm run db:up
   ```
 
-  Skrypt uruchamia usługę MySQL z pliku [`docker-compose.yml`](./docker-compose.yml). Przy pierwszym utworzeniu wolumenu Docker wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w wolumenie i nie są importowane ponownie przy zwykłym restarcie.
+  Skrypt uruchamia usługę MySQL z pliku [`docker-compose.yml`](./docker-compose.yml) i czeka na jej gotowość. Przy pierwszym utworzeniu wolumenu Docker wykona [`backend/inventory_db.sql`](./backend/inventory_db.sql). Dane są przechowywane w wolumenie i nie są importowane ponownie przy zwykłym restarcie.
 
   Aby całkowicie odtworzyć bazę razem z usunięciem danych, użyj:
 
@@ -53,7 +52,7 @@ npm install
   npm run db:reset
   ```
 
-  `FRONTEND_ORIGIN` to adres frontendu, któremu backend zezwala na połączenie. Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
+  `FRONTEND_ORIGIN` jest adresem frontendu, któremu backend zezwala na połączenie. Nie dodawaj pliku `.env` do repozytorium ani nie umieszczaj w nim haseł w dokumentacji.
 
 ## Uruchomienie
 
@@ -150,13 +149,7 @@ Odczyt listy sprzętu jest publiczny i nie wymaga logowania. Logowanie (po adres
 
 W aplikacji moderator przenosi sprzęt listą w kolumnie „Przenieś do”, a admin zmienia lokalizację w formularzu edycji. Admin dodaje sprzęt przyciskiem „Dodaj sprzęt”, edytuje go przyciskiem „Edytuj” i usuwa przyciskiem „Usuń” w tabeli (po potwierdzeniu), a konta użytkowników zakłada w zakładce „Zarządzanie Dostępem”. Tabelę można przeszukiwać, filtrować po statusie oraz roli przypisanego użytkownika i sortować (rosnąco) po numerze inwentarzowym, producencie lub modelu. Uprawnienia są sprawdzane po stronie backendu, więc osoba bez odpowiedniej roli dostaje błąd `403`, nawet gdy wywoła API bezpośrednio.
 
-Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Plik `inventory_db.sql` tworzy trzy konta testowe ze wspólnym hasłem `haslo123`, przeznaczone tylko do rozwoju:
-
-| Email | Rola |
-| --- | --- |
-| `admin@example.com` | `admin` |
-| `manager@example.com` | `manager` |
-| `user@example.com` | `user` |
+Rola użytkownika jest zapisana w tabeli `user` (`role_id`). Dane kont logowania nie są opisane w tym README i należy utworzyć je dla własnego środowiska.
 
 ## Testy
 
@@ -204,8 +197,8 @@ Przykładowe żądanie:
 
 ```json
 {
-  "email": "admin@example.com",
-  "password": "haslo123"
+  "email": "<adres-email>",
+  "password": "<haslo>"
 }
 ```
 
@@ -272,7 +265,7 @@ Dostęp: bez logowania. Oprócz pól sprzętu (łącznie z `location_id`, `statu
     "assigned_to": 3,
     "status": { "id": 1, "name": "active" },
     "location": { "id": 1, "building": "Budynek A", "room": "101" },
-    "assignedUser": { "id": 3, "email": "user@example.com", "role_id": 3, "UserRole": { "role": "user" } }
+    "assignedUser": { "id": 3, "email": "<adres-email>", "role_id": 3, "UserRole": { "role": "user" } }
   }
 ]
 ```
@@ -472,7 +465,7 @@ Dostęp: tylko `admin`. Odpowiedź:
 
 ```json
 [
-  { "id": 1, "email": "admin@example.com", "roleId": 1, "role": "admin" }
+  { "id": 1, "email": "<adres-email>", "roleId": 1, "role": "admin" }
 ]
 ```
 
@@ -512,8 +505,8 @@ Przykładowe żądanie:
 
 ```json
 {
-  "email": "nowy@example.com",
-  "password": "dlugiehaslo12345",
+  "email": "<adres-email>",
+  "password": "<silne-haslo>",
   "roleId": 2
 }
 ```
@@ -531,7 +524,7 @@ Hasło musi mieć od 12 do 128 znaków. Poprawne utworzenie zwraca `201 Created`
 ```json
 {
   "id": 4,
-  "email": "nowy@example.com",
+  "email": "<adres-email>",
   "roleId": 2,
   "role": "manager"
 }

@@ -12,6 +12,10 @@ import locationsRoutes from './routes/locations.js'
 const app = express()
 const PORT = process.env.PORT || 4000
 
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED:', err)
+})
+
 app.set('trust proxy', 1)
 
 app.use(helmet())

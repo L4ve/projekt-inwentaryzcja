@@ -9,21 +9,31 @@ const router = Router()
 router.use(requireAuth, onlyAdmin)
 
 router.get('/users', async (req, res) => {
-  const users = await User.findAll({
-    attributes: ['id', 'email', 'role_id'],
-    include: { model: UserRole, as: 'UserRole', attributes: ['role'] },
-    order: [['id', 'ASC']],
-  })
-  res.json(users.map(formatUser))
+  try {
+    const users = await User.findAll({
+      attributes: ['id', 'email', 'role_id'],
+      include: { model: UserRole, as: 'UserRole', attributes: ['role'] },
+      order: [['id', 'ASC']],
+    })
+    res.json(users.map(formatUser))
+  } catch (err) {
+    console.error('ADMIN USERS ERROR:', err)
+    res.status(500).json({ error: 'Nie udało się pobrać użytkowników.' })
+  }
 })
 
 router.get('/roles', async (req, res) => {
-  const roles = await UserRole.findAll({
-    where: { role: ['admin', 'manager'] },
-    attributes: ['id', 'role'],
-    order: [['id', 'ASC']],
-  })
-  res.json(roles)
+  try {
+    const roles = await UserRole.findAll({
+      where: { role: ['admin', 'manager'] },
+      attributes: ['id', 'role'],
+      order: [['id', 'ASC']],
+    })
+    res.json(roles)
+  } catch (err) {
+    console.error('ADMIN ROLES ERROR:', err)
+    res.status(500).json({ error: 'Nie udało się pobrać ról.' })
+  }
 })
 
 router.post('/users', async (req, res) => {
@@ -59,30 +69,39 @@ router.patch('/users/:id', async (req, res) => {
   const roleId = parsePositiveInteger(req.body?.roleId)
   if (!userId || !roleId) return res.status(400).json({ error: 'Nieprawidłowe dane użytkownika.' })
 
-  const user = await User.findByPk(userId)
-  const role = await UserRole.findByPk(roleId)
-  if (!user || !role) return res.status(404).json({ error: 'Użytkownik lub rola nie istnieje.' })
-  if (user.id === req.user.id && role.role !== 'admin') return res.status(400).json({ error: 'Nie możesz odebrać sobie roli administratora.' })
-  if (user.role_id === 1 && role.id !== 1 && await countAdmins() <= 1) {
-    return res.status(400).json({ error: 'System musi mieć co najmniej jednego administratora.' })
-  }
+  try {
+    const user = await User.findByPk(userId)
+    const role = await UserRole.findByPk(roleId)
+    if (!user || !role) return res.status(404).json({ error: 'Użytkownik lub rola nie istnieje.' })
+    if (user.id === req.user.id && role.role !== 'admin') return res.status(400).json({ error: 'Nie możesz odebrać sobie roli administratora.' })
+    if (user.role_id === 1 && role.id !== 1 && await countAdmins() <= 1) {
+      return res.status(400).json({ error: 'System musi mieć co najmniej jednego administratora.' })
+    }
 
-  await user.update({ role_id: role.id })
-  res.json({ message: 'Rola została zmieniona.' })
+    await user.update({ role_id: role.id })
+    res.json({ message: 'Rola została zmieniona.' })
+  } catch (err) {
+    console.error('ADMIN UPDATE ROLE ERROR:', err)
+    res.status(500).json({ error: 'Nie udało się zmienić roli.' })
+  }
 })
 
 router.delete('/users/:id', async (req, res) => {
-  const userId = parsePositiveInteger(req.params.id)
-  const user = userId ? await User.findByPk(userId) : null
-  if (!user) return res.status(404).json({ error: 'Użytkownik nie istnieje.' })
-  if (user.id === req.user.id) return res.status(400).json({ error: 'Nie możesz usunąć własnego konta.' })
-  if (user.role_id === 1 && await countAdmins() <= 1) return res.status(400).json({ error: 'Nie można usunąć ostatniego administratora.' })
-
   try {
+    const userId = parsePositiveInteger(req.params.id)
+    const user = userId ? await User.findByPk(userId) : null
+    if (!user) return res.status(404).json({ error: 'Użytkownik nie istnieje.' })
+    if (user.id === req.user.id) return res.status(400).json({ error: 'Nie możesz usunąć własnego konta.' })
+    if (user.role_id === 1 && await countAdmins() <= 1) return res.status(400).json({ error: 'Nie można usunąć ostatniego administratora.' })
+
     await user.destroy()
     res.status(204).send()
-  } catch {
-    res.status(409).json({ error: 'Nie można usunąć użytkownika, bo ma wpisy w dzienniku zdarzeń.' })
+  } catch (err) {
+    if (err.name === 'SequelizeForeignKeyConstraintError') {
+      return res.status(409).json({ error: 'Nie można usunąć użytkownika, bo ma wpisy w dzienniku zdarzeń.' })
+    }
+    console.error('ADMIN DELETE USER ERROR:', err)
+    res.status(500).json({ error: 'Nie udało się usunąć użytkownika.' })
   }
 })
 

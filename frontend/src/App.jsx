@@ -15,6 +15,7 @@ function App() {
   const [activePage, setActivePage] = useState("equipment");
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/api/auth/me`, { credentials: "include" })
@@ -30,11 +31,16 @@ function App() {
       credentials: "include",
     });
     setUser(null);
-    setActivePage("equipment");
+    goToPage("equipment");
+  }
+
+  function goToPage(page) {
+    setActivePage(page);
+    setMenuOpen(false);
   }
 
   if (!authChecked) {
-    return <div className="auth-loading">Sprawdzanie sesji...</div>;
+    return <div className="min-vh-100 d-flex align-items-center justify-content-center text-secondary">Sprawdzanie sesji...</div>;
   }
 
   const role = user?.role || "user";
@@ -50,65 +56,66 @@ function App() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="logo">
-          📦 Ewidencja <span>Sprzętu</span>
+      <header className="topbar sticky-top d-flex align-items-center justify-content-between gap-3 px-3 px-md-4 bg-white border-bottom">
+        <div className="d-flex align-items-center gap-2 fw-semibold text-nowrap">
+          <i className="bi bi-box-seam text-primary fs-5" />
+          <span>Ewidencja Sprzętu</span>
         </div>
-        <div className="session-actions">
+        <div className="d-flex align-items-center gap-3">
           {user ? (
             <>
-              <span className="role-badge">Rola: {role.toUpperCase()}</span>
-              <button className="logout-button" type="button" onClick={handleLogout}>Wyloguj</button>
+              <div className="d-flex align-items-center gap-2" title={`Rola: ${role.toUpperCase()}`}>
+                <span className="avatar rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center">
+                  {role.charAt(0).toUpperCase()}
+                </span>
+                <div className="lh-sm d-none d-md-block">
+                  <div className="small text-secondary">Rola</div>
+                  <div className="small fw-semibold">{role.toUpperCase()}</div>
+                </div>
+              </div>
+              <div className="vr d-none d-md-block" />
+              <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2" type="button" onClick={handleLogout} aria-label="Wyloguj">
+                <i className="bi bi-box-arrow-right" />
+                <span className="d-none d-sm-inline">Wyloguj</span>
+              </button>
             </>
           ) : (
-            <button className="logout-button" type="button" onClick={() => setActivePage("login")}>Panel logowania</button>
+            <button className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2" type="button" onClick={() => goToPage("login")} aria-label="Panel logowania">
+              <i className="bi bi-box-arrow-in-right d-sm-none" />
+              <span className="d-none d-sm-inline">Panel logowania</span>
+            </button>
+          )}
+          {user && (
+            <button className="btn btn-outline-secondary btn-sm d-sm-none" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu" aria-expanded={menuOpen}>
+              <i className={menuOpen ? "bi bi-x-lg" : "bi bi-list"} />
+            </button>
           )}
         </div>
       </header>
-      <div className="layout">
-        <Sidebar setActivePage={setActivePage} isAdmin={role === "admin"} />
-        <main className="main"> {activePage === "equipment" && 
-        ( <>
-              <div className="heading-row">
-                <div className="filters">
-                  <input type="text" placeholder="Szukaj po nr inwentarzowym, marce, modelu." value={search} onChange={(e) => setSearch(e.target.value)}/>
-                </div>
-                <div className="status">
-                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="Wszystkie">Status: Wszystkie</option>
-                    <option value="active">Status: Aktywny</option>
-                    <option value="in_repair">Status: W naprawie</option>
-                    <option value="in_storage">Status: W magazynie</option>
-                    <option value="retired">Status: Wycofany</option>
-                    <option value="lost">Status: Zaginiony</option>
-                  </select>
-                </div>
-                <div className="assigned">
-                  <select value={assigned} onChange={(e) => setAssigned(e.target.value)}>
-                    <option value="Wszyscy">Przypisany: Wszyscy</option>
-                    <option value="Nikt">Przypisany: Nikt</option>
-                    {assignedUsers.map((role) => (
-                      <option key={role} value={role}>Przypisany: {role}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <Items
-                role={role}
-                search={search}
-                statusFilter={status}
-                assignedFilter={assigned}
-                onAssignedUsersChange={setAssignedUsers}
-              />
-            </>
+      {menuOpen && <div className="menu-backdrop d-sm-none" onClick={() => setMenuOpen(false)} />}
+      <div className="d-flex flex-column flex-xl-row flex-grow-1">
+        {user && <Sidebar activePage={activePage} setActivePage={goToPage} isAdmin={role === "admin"} isOpen={menuOpen} />}
+        <main className="main flex-grow-1 p-3 p-md-4">
+          {activePage === "equipment" && (
+            <Items
+              role={role}
+              search={search}
+              onSearchChange={setSearch}
+              statusFilter={status}
+              onStatusFilterChange={setStatus}
+              assignedFilter={assigned}
+              onAssignedFilterChange={setAssigned}
+              assignedUsers={assignedUsers}
+              onAssignedUsersChange={setAssignedUsers}
+            />
           )}
 
           {activePage === "logs" && (
-            <h1>Logi</h1>
+            user ? <h1 className="h4 fw-semibold mb-3">Logi</h1> : <h1 className="h4 fw-semibold mb-3">Brak uprawnień</h1>
           )}
 
           {activePage === "access" && (
-            role === "admin" ? <AccessPage apiUrl={API_URL} /> : <h1>Brak uprawnień</h1>
+            role === "admin" ? <AccessPage apiUrl={API_URL} /> : <h1 className="h4 fw-semibold mb-3">Brak uprawnień</h1>
           )}
         </main>
       </div>
