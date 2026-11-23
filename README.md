@@ -13,6 +13,10 @@ Prosta aplikacja do ewidencji sprzętu.
 - npm,
 - Docker Desktop.
 
+## Adres railway
+
+```inwentaryzacja-frontend.up.railway.app```
+
 ## Instalacja
 
 Wymagany jest Node.js 20 lub nowszy, npm oraz Docker Desktop. Poniższa procedura działa na świeżo sklonowanym repozytorium:
