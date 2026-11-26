@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { TrashIcon } from "../components/icons";
 
 function AccessPage({ apiUrl }) {
   const [users, setUsers] = useState([]);
@@ -82,9 +83,9 @@ function AccessPage({ apiUrl }) {
       <h1>Zarządzanie Dostępem</h1>
       <form className="admin-form" onSubmit={createUser}>
         <h2>Dodaj użytkownika</h2>
-        <input type="email" maxLength="254" placeholder="Adres email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
-        <input type="password" minLength="12" maxLength="128" placeholder="Hasło (min. 12 znaków)" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required />
-        <select value={form.roleId} onChange={(event) => setForm({ ...form, roleId: event.target.value })}>
+        <input type="email" aria-label="Adres email" maxLength="254" placeholder="Adres email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required />
+        <input type="password" aria-label="Hasło" minLength="12" maxLength="128" placeholder="Hasło (min. 12 znaków)" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} required />
+        <select aria-label="Rola" value={form.roleId} onChange={(event) => setForm({ ...form, roleId: event.target.value })}>
           {roles.map((role) => <option key={role.id} value={role.id}>{role.role}</option>)}
         </select>
         <button type="submit" className="primary-button">Utwórz</button>
@@ -92,21 +93,23 @@ function AccessPage({ apiUrl }) {
       {error && <p className="login-error" role="alert">{error}</p>}
       {message && <p className="admin-message" role="status">{message}</p>}
       <div className="table-wrapper">
+        <div className="table-scroll">
         <table>
           <thead><tr><th>Email</th><th>Rola</th><th>Akcje</th></tr></thead>
           <tbody>{users.map((user) => (
             <tr key={user.id}>
               <td>{user.email}</td>
               <td>
-                <select value={pendingRoles[user.id] ?? user.roleId} onChange={(event) => setPendingRoles((current) => ({ ...current, [user.id]: event.target.value }))}>
+                <select aria-label={`Rola: ${user.email}`} value={pendingRoles[user.id] ?? user.roleId} onChange={(event) => setPendingRoles((current) => ({ ...current, [user.id]: event.target.value }))}>
                   {roles.map((role) => <option key={role.id} value={role.id}>{role.role}</option>)}
                 </select>
                 {pendingRoles[user.id] && <button type="button" className="primary-button role-confirm-button" onClick={() => changeRole(user.id, pendingRoles[user.id])}>Potwierdź</button>}
               </td>
-              <td><button type="button" className="danger-button" onClick={() => removeUser(user.id)}>Usuń</button></td>
+              <td><button type="button" className="danger-button" onClick={() => removeUser(user.id)}><TrashIcon />Usuń</button></td>
             </tr>
           ))}</tbody>
         </table>
+        </div>
       </div>
     </div>
   );

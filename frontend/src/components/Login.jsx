@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ArrowLeftIcon, LogoIcon } from "./icons";
 
 function Login({ apiUrl, onLogin, onBack }) {
   const [email, setEmail] = useState("");
@@ -44,21 +45,28 @@ function Login({ apiUrl, onLogin, onBack }) {
   return (
     <main className="login-page">
       <form className="login-card" onSubmit={handleSubmit}>
-        <div className="login-brand">📦 Ewidencja <span>Sprzętu</span></div>
-        <div className="login-heading">
-          <h1>Panel logowania</h1>
-          <p>Logowanie dla moderatorów i administratorów.</p>
+        <div className="login-brand"><LogoIcon className="logo-mark" size={20} /><span>Ewidencja Sprzętu</span></div>
+        <div className="login-body">
+          <div className="login-heading">
+            <h1>Panel logowania</h1>
+            <p>Logowanie dla moderatorów i administratorów.</p>
+          </div>
+          <label htmlFor="user-email">Adres email</label>
+          <input id="user-email" type="email" maxLength="254" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required/>
+          <label htmlFor="password">Hasło</label>
+          <input id="password" type="password" maxLength="256" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required/>
+          {error && <p className="login-error" role="alert">{error}</p>}
+          <button className="login-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Logowanie..." : "Zaloguj się"}
+          </button>
         </div>
-        <label htmlFor="user-email">Adres email</label>
-        <input id="user-email" type="email" maxLength="254" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required/>
-        <label htmlFor="password">Hasło</label>
-        <input id="password" type="password" maxLength="256" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required/>
-        {error && <p className="login-error" role="alert">{error}</p>}
-        <button className="login-button" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Logowanie..." : "Zaloguj się"}
-        </button>
-        {onBack && <button className="login-switch-button" type="button" onClick={onBack}>Wróć do ewidencji</button>}
       </form>
+      {onBack && (
+        <button className="login-switch-button" type="button" onClick={onBack}>
+          <ArrowLeftIcon />
+          Wróć do ewidencji
+        </button>
+      )}
     </main>
   );
 }

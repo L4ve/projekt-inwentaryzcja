@@ -4,6 +4,7 @@ import Sidebar from "./components/sidebar";
 import Login from "./components/Login";
 import Items from "./components/Items";
 import AccessPage from "./pages/accessPage";
+import { LogoIcon, LogoutIcon } from "./components/icons";
 
 const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "" : "http://localhost:4000");
 
@@ -52,13 +53,24 @@ function App() {
     <>
       <header className="topbar">
         <div className="logo">
-          📦 Ewidencja <span>Sprzętu</span>
+          <LogoIcon className="logo-mark" />
+          <span>Ewidencja Sprzętu</span>
         </div>
         <div className="session-actions">
           {user ? (
             <>
-              <span className="role-badge">Rola: {role.toUpperCase()}</span>
-              <button className="logout-button" type="button" onClick={handleLogout}>Wyloguj</button>
+              <span className="role-badge" title={`Rola: ${role.toUpperCase()}`}>
+                <span className="role-avatar" aria-hidden="true">{role.charAt(0).toUpperCase()}</span>
+                <span className="role-text">
+                  <span className="role-label">Rola</span>
+                  <span className="role-name">{role.toUpperCase()}</span>
+                </span>
+              </span>
+              <span className="session-divider" aria-hidden="true" />
+              <button className="logout-button compact-on-mobile" type="button" onClick={handleLogout} aria-label="Wyloguj">
+                <LogoutIcon />
+                <span className="logout-text">Wyloguj</span>
+              </button>
             </>
           ) : (
             <button className="logout-button" type="button" onClick={() => setActivePage("login")}>Panel logowania</button>
@@ -66,41 +78,20 @@ function App() {
         </div>
       </header>
       <div className="layout">
-        <Sidebar setActivePage={setActivePage} isAdmin={role === "admin"} />
-        <main className="main"> {activePage === "equipment" && 
-        ( <>
-              <div className="heading-row">
-                <div className="filters">
-                  <input type="text" placeholder="Szukaj po nr inwentarzowym, marce, modelu." value={search} onChange={(e) => setSearch(e.target.value)}/>
-                </div>
-                <div className="status">
-                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="Wszystkie">Status: Wszystkie</option>
-                    <option value="active">Status: Aktywny</option>
-                    <option value="in_repair">Status: W naprawie</option>
-                    <option value="in_storage">Status: W magazynie</option>
-                    <option value="retired">Status: Wycofany</option>
-                    <option value="lost">Status: Zaginiony</option>
-                  </select>
-                </div>
-                <div className="assigned">
-                  <select value={assigned} onChange={(e) => setAssigned(e.target.value)}>
-                    <option value="Wszyscy">Przypisany: Wszyscy</option>
-                    <option value="Nikt">Przypisany: Nikt</option>
-                    {assignedUsers.map((role) => (
-                      <option key={role} value={role}>Przypisany: {role}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <Items
-                role={role}
-                search={search}
-                statusFilter={status}
-                assignedFilter={assigned}
-                onAssignedUsersChange={setAssignedUsers}
-              />
-            </>
+        <Sidebar activePage={activePage} setActivePage={setActivePage} isAdmin={role === "admin"} />
+        <main className="main">
+          {activePage === "equipment" && (
+            <Items
+              role={role}
+              search={search}
+              onSearchChange={setSearch}
+              statusFilter={status}
+              onStatusFilterChange={setStatus}
+              assignedFilter={assigned}
+              onAssignedFilterChange={setAssigned}
+              assignedUsers={assignedUsers}
+              onAssignedUsersChange={setAssignedUsers}
+            />
           )}
 
           {activePage === "logs" && (
